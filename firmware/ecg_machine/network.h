@@ -21,7 +21,6 @@ private:
 
 public:
     WirelessCommunication() {
-        // Load credentials from Preferences at startup
         ssid = getSavedSSID();
         password = getSavedPassword();
     }
