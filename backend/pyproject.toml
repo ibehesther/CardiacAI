@@ -19,6 +19,7 @@ bcrypt = "^4.2.1"
 pytest = "^8.3.4"
 pyjwt = "^2.10.1"
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
+matplotlib = "^3.10.3"
 
 [tool.poetry.group.dev.dependencies]
 faker = "^33.1.0"

@@ -1,13 +1,127 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Dict, List
+from app.src.web.reading import store_reading_flags, reading_buffers, current_sessions, BUFFER_SIZE
+from data import async_db
+from bson import ObjectId
+from datetime import datetime
+import json
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
-@router.websocket("/ecg")
-async def ecg_websocket(websocket: WebSocket):
+# Track active WebSocket connections
+device_connections: Dict[str, WebSocket] = {}          # device_id: device websocket
+frontend_connections: Dict[str, List[WebSocket]] = {}  # device_id: list of frontend websockets
+# Track which devices should store readings
+store_reading_flags: Dict[str, bool] = {}  # device_id -> bool
+# Cache created document ID
+session_docs = {}  # device_id -> inserted document _id
+
+
+
+@router.websocket("/device")
+async def device_ws(websocket: WebSocket):
     await websocket.accept()
+    device_id = websocket.query_params.get("device_id")
+    if not device_id:
+        await websocket.close()
+        return
+
+    device_connections[device_id] = websocket
+    print(f"Device {device_id} connected.")
+
     try:
-        await websocket.send_text("Hello World from WebSocket")
         while True:
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+            data_point = json.loads(data)  # Expecting a float or JSON containing "value"
+
+            # Forward to frontend
+            if device_id in frontend_connections:
+                for client_ws in frontend_connections[device_id]:
+                    await client_ws.send_text(data)
+
+            # Store to DB if toggled on
+            if store_reading_flags.get(device_id):
+                if not isinstance(data_point, (int, float)):
+                    # If payload is a dict like {"value": 0.5}
+                    data_point = data_point.get("value")
+                if data_point is None:
+                    continue
+
+                reading_buffers[device_id].append(float(data_point))
+
+                # Save when buffer reaches threshold
+                if len(reading_buffers[device_id]) >= BUFFER_SIZE:
+                    session_id = current_sessions[device_id]
+                    buffer_copy = reading_buffers[device_id][:BUFFER_SIZE]
+
+                    if device_id not in session_docs:
+                        # First save: insert new document
+                        result = await async_db.readings.insert_one({
+                            "device_id": device_id,
+                            "timestamp": datetime.utcnow(),
+                            "session_id": session_id,
+                            "data": buffer_copy,
+                        })
+                        session_docs[device_id] = result.inserted_id
+                    else:
+                        # Append to existing document
+                        await async_db.readings.update_one(
+                            {"_id": ObjectId(session_docs[device_id])},
+                            {"$push": {"data": {"$each": buffer_copy}}}
+                        )
+
+                    reading_buffers[device_id].clear()
+
     except WebSocketDisconnect:
-        print("Disconnected")
+        print(f"Device {device_id} disconnected.")
+        device_connections.pop(device_id, None)
+
+        # 🧠 Handle pending buffer if session was active
+        if store_reading_flags.get(device_id):
+            buffer = reading_buffers.get(device_id, [])
+            if buffer:
+                session_id = current_sessions.get(device_id)
+                if device_id not in session_docs:
+                    # Insert fresh if buffer never got saved
+                    result = await async_db.readings.insert_one({
+                        "device_id": device_id,
+                        "timestamp": datetime.utcnow(),
+                        "session_id": session_id,
+                        "data": buffer
+                    })
+                else:
+                    # Append final buffer to existing doc
+                    await async_db.readings.update_one(
+                        {"_id": ObjectId(session_docs[device_id])},
+                        {"$push": {"data": {"$each": buffer}}}
+                    )
+
+            # Clear session state (turn off save)
+            store_reading_flags.pop(device_id, None)
+            current_sessions.pop(device_id, None)
+            reading_buffers.pop(device_id, None)
+            session_docs.pop(device_id, None)
+
+
+@router.websocket("/frontend")
+async def frontend_ws(websocket: WebSocket):
+    await websocket.accept()
+    device_id = websocket.query_params.get("device_id")
+    if not device_id:
+        await websocket.close()
+        return
+
+    if device_id not in frontend_connections:
+        frontend_connections[device_id] = []
+    frontend_connections[device_id].append(websocket)
+    print(f"Frontend connected to device {device_id}.")
+
+    try:
+        while True:
+            await websocket.receive_text()  # Optional: listen to frontend messages (e.g., control commands)
+    except WebSocketDisconnect:
+        print(f"Frontend disconnected from device {device_id}.")
+        frontend_connections[device_id].remove(websocket)
+        if not frontend_connections[device_id]:
+            frontend_connections.pop(device_id)
+

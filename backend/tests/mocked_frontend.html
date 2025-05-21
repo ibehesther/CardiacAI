@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live ECG Frontend</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    canvas {
+      max-width: 90vw;
+      height: 400px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Live ECG Feed for Device: abc123</h1>
+  <canvas id="ecgChart"></canvas>
+  <pre id="log"></pre>
+
+  <script>
+    const deviceId = "abc123";
+    const socket = new WebSocket(`ws://localhost:8000/api/ws/frontend?device_id=${deviceId}`);
+    const log = document.getElementById("log");
+
+    const ctx = document.getElementById('ecgChart').getContext('2d');
+    const MAX_POINTS = 100;
+
+    const ecgChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: Array(MAX_POINTS).fill(""),
+        datasets: [{
+          label: 'ECG Signal',
+          borderColor: 'red',
+          backgroundColor: 'rgba(255,0,0,0.1)',
+          data: [],
+          pointRadius: 0,
+          borderWidth: 2,
+          tension: 0.3
+        }]
+      },
+      options: {
+        animation: false,
+        responsive: true,
+        scales: {
+          x: { display: false },
+          y: {
+            min: -1,
+            max: 1,
+            title: { display: true, text: 'Amplitude' }
+          }
+        }
+      }
+    });
+
+    socket.onopen = () => {
+      log.textContent += "Connected to backend\n";
+    };
+
+    socket.onmessage = (event) => {
+      const rawValue = event.data.trim();
+      const ecgPoint = parseFloat(rawValue);
+
+      if (!isNaN(ecgPoint)) {
+        const dataSet = ecgChart.data.datasets[0].data;
+        dataSet.push(ecgPoint);
+        if (dataSet.length > MAX_POINTS) {
+          dataSet.shift();
+        }
+        ecgChart.update('none');
+      } else {
+        console.warn("Invalid ECG data:", rawValue);
+      }
+    };
+
+    socket.onclose = () => {
+      log.textContent += "Connection closed\n";
+    };
+  </script>
+</body>
+</html>
