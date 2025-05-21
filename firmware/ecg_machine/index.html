@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Machine Wi-Fi Setup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean, modern look */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Subtle animation for the "ECG" line effect */
+        @keyframes pulse {
+            0% { transform: scaleX(0); opacity: 0; }
+            50% { transform: scaleX(1); opacity: 1; }
+            100% { transform: scaleX(0); opacity: 0; }
+        }
+        .ecg-line-animation {
+            animation: pulse 2s infinite ease-in-out;
+            transform-origin: left center;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-md w-full border border-green-500 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-green-500 ecg-line-animation"></div>
+        <div class="absolute bottom-0 right-0 w-full h-1 bg-green-500 ecg-line-animation" style="animation-delay: 1s;"></div>
+
+        <h1 class="text-3xl font-bold text-center text-green-400 mb-6 flex items-center justify-center">
+            <svg class="w-8 h-8 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            </svg>
+            ECG Machine Wi-Fi Setup
+        </h1>
+
+        <p class="text-center text-gray-300 mb-8">
+            Connect your device to the internet.
+        </p>
+
+        <form action="/setup" method="POST" class="space-y-6">
+            <div>
+                <label for="ssid" class="block text-sm font-medium text-gray-300 mb-2">Wi-Fi Network (SSID)</label>
+                <input
+                    type="text"
+                    id="ssid"
+                    name="ssid"
+                    required
+                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-100 placeholder-gray-400"
+                    placeholder="Enter Wi-Fi network name"
+                >
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-100 placeholder-gray-400"
+                    placeholder="Enter Wi-Fi password"
+                >
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+            >
+                Connect to Wi-Fi
+            </button>
+        </form>
+
+        <p class="text-center text-gray-500 text-xs mt-8">
+            Your ECG Machine will attempt to connect after submission.
+        </p>
+    </div>
+</body>
+</html>
