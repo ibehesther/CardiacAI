@@ -44,6 +44,7 @@ ExcludedField = Annotated[T, Field(exclude=True)]
 class DeviceCreate(BaseModel):
     device_id: str
     password: str
+    public_password: str
 
 
 # Stored in DB
@@ -53,6 +54,7 @@ class DeviceInDB(BaseModel):
     )
     device_id: str
     hashed_password: str
+    hashed_public_password: str
 
     class Config:
         """

@@ -52,14 +52,15 @@ class ReadingRepository:
         return result.inserted_id
 
     @staticmethod
-    async def get_all_metadata() -> List[dict]:
+    async def get_all_metadata(device_id: str) -> List[ECGReading]:
         """
         Retrieve metadata for all ECG readings.
         Returns:
             List[dict]: A list of dictionaries containing metadata for all ECG readings.
         """
-        cursor = async_db.readings.find()
-        return [doc async for doc in cursor]
+        cursor = async_db.readings.find({"device_id": device_id})
+        readings = [ECGReading(**doc) async for doc in cursor]
+        return readings
 
     @staticmethod
     async def get_reading_session(session_id: str) -> dict:
@@ -144,16 +145,71 @@ class ReadingRepository:
         
     @staticmethod
     async def append_to_array(array_id: str, new_values: List[float]) -> dict:
+        """
+        Appends new values to an array in a MongoDB document, capping its total length.
+        If adding new_values would cause the array to exceed 2000 elements,
+        new data will be discarded or truncated to fit the cap.
+
+        Args:
+            array_id (str): The ObjectId string of the document to update.
+            new_values (List[float]): A list of float values to append.
+
+        Returns:
+            dict: The updated document from the database.
+
+        Raises:
+            ValueError: If array_id is invalid, new_values is not a list of numbers,
+                        or the document is not found/failed to update.
+        """
+        # Validate input array_id
         if not ObjectId.is_valid(array_id):
             raise ValueError("Invalid ObjectId")
+
+        # Validate new_values content
         if not isinstance(new_values, list) or not all(isinstance(v, (int, float)) for v in new_values):
             raise ValueError("new_values must be a list of numbers")
 
+        MAX_ARRAY_LENGTH = 2000
+
+        # 1. Fetch the document to get the current length of the 'data' array
+        # This step is crucial to determine how many new values can be added.
+        document = await async_db.ecg_arrays.find_one({"_id": ObjectId(array_id)})
+        if not document:
+            raise ValueError(f"Array document with ID {array_id} not found.")
+
+        current_data = document.get("data", [])
+        current_length = len(current_data)
+
+        # 2. Determine how many new values can actually be appended
+        if current_length >= MAX_ARRAY_LENGTH:
+            # If the array is already at or above the maximum length,
+            # discard all new incoming data.
+            print(f"Array {array_id} is already at max length ({MAX_ARRAY_LENGTH}). New data discarded.")
+            return document  # Return the existing document without modification
+
+        # Calculate the remaining capacity in the array
+        remaining_capacity = MAX_ARRAY_LENGTH - current_length
+
+        # Take only the values that fit within the remaining capacity
+        values_to_add = new_values[:remaining_capacity]
+
+        if not values_to_add:
+            # If no values are left to add after capping (e.g., new_values was empty
+            # or too large to fit any part), return the current document.
+            print(f"No new values to add to array {array_id} after capping.")
+            return document
+
+        # 3. Append the (potentially truncated) list of new values to the array
+        # "$push" with "$each" is used to append multiple elements.
         result = await async_db.ecg_arrays.find_one_and_update(
             {"_id": ObjectId(array_id)},
-            {"$push": {"data": {"$each": new_values}}},
-            return_document=True
+            {"$push": {"data": {"$each": values_to_add}}},
+            return_document=True  # Returns the modified document
         )
+
         if not result:
-            raise ValueError("Array not found")
+            # This case should ideally not happen if the document was found initially,
+            # but it's good practice to handle potential update failures.
+            raise ValueError(f"Failed to update array document with ID {array_id}.")
+
         return result

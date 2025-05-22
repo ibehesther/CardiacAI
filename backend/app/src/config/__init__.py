@@ -38,7 +38,7 @@ class Config:
             self._config["db"]["name"] = os.getenv("DB_NAME_TEST", "CARDIAC_test")
         else:
             self._config["db"]["name"] = os.getenv(
-                "DB_NAME_DEVELOPMENT", "CARDIAC_dev"
+                "DB_NAME_DEVELOPMENT", "CARDIAC_dev_Dev"
             )
         self.secret_key = os.getenv("SECRET_KEY", "secret")
         self.token_algorithm = os.getenv("TOKEN_ALGORITHM", "HS256")
