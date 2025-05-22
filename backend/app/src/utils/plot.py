@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 from io import BytesIO
-from fastapi.responses import StreamingResponse
 
 """
 TODO: Save the array of readings o a separate collection and
@@ -41,6 +40,4 @@ def plot_ecg_and_return_image(session: dict):
     plt.savefig(buf, format="png")
     plt.close()
     buf.seek(0)
-    return StreamingResponse(buf, media_type="image/png", headers={
-        "Content-Disposition": f"attachment; filename=ecg_session_{session_id}.png"
-    })
+    return buf

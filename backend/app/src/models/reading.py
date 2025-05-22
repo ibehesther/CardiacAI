@@ -9,7 +9,7 @@ class ECGReading(BaseModel):
     device_id: str
     session_id: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    data: List[float]  # or str, depending on your ECG data format
+    data: List[float]
 
     class Config:
         arbitrary_types_allowed = True

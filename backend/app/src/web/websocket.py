@@ -8,6 +8,7 @@ from uuid import uuid4
 from app.src.utils.plot import plot_ecg_and_return_image
 from app.src.data.reading import get_reading_session
 from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
@@ -48,7 +49,9 @@ async def toggle_reading_store(device_id: str, enable: bool):
 async def download_ecg(session_id: str):
     try:
         session = await get_reading_session(session_id)
-        return plot_ecg_and_return_image(session)
+        return StreamingResponse(plot_ecg_and_return_image(session), media_type="image/png", headers={
+        "Content-Disposition": f"attachment; filename=ecg_session_{session_id}.png"
+    })
     except ValueError:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -149,6 +152,12 @@ async def frontend_ws(websocket: WebSocket):
     device_id = websocket.query_params.get("device_id")
     if not device_id:
         await websocket.close()
+        # raise HTTPException(status_code=404, detail="Invalid device_id")
+        return
+    
+    if device_id not in device_connections:
+        await websocket.close()
+        # raise HTTPException(status_code=404, detail="Device is Offline")
         return
 
     if device_id not in frontend_connections:
