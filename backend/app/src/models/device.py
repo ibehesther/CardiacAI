@@ -55,5 +55,12 @@ class DeviceInDB(BaseModel):
     hashed_password: str
 
     class Config:
+        """
+        Configuration class for Pydantic model.
+
+        Attributes:
+            arbitrary_types_allowed (bool): Allows arbitrary user-defined types (such as ObjectId) to be used as fields in the model.
+            json_encoders (dict): Specifies custom JSON encoders for specific types. Here, ObjectId instances will be serialized as strings.
+        """
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
