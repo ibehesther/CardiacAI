@@ -1,9 +1,19 @@
+"""
+This file hoses the database operations for devices.
+"""
+
 from data import async_db
 from app.src.models.device import DeviceCreate, DeviceInDB
 from app.src.utils.security import hash_password, verify_password
 
 
 async def create_device(device: DeviceCreate):
+    """
+    Create a new device in the database.
+    
+    Args:
+        device (DeviceCreate): The device to create.
+    """
     hashed = hash_password(device.password)
     device_doc = {
         "device_id": device.device_id,
@@ -14,6 +24,12 @@ async def create_device(device: DeviceCreate):
 
 
 async def get_device_by_id(device_id: str) -> DeviceInDB | None:
+    """
+    Get a device by its ID.
+    
+    Args:
+        device_id (str): The ID of the device to retrieve.
+    """
     data = await async_db.devices.find_one({"device_id": device_id})
     if data:
         return DeviceInDB(**data)
@@ -21,6 +37,13 @@ async def get_device_by_id(device_id: str) -> DeviceInDB | None:
 
 
 async def authenticate_device(device_id: str, password: str) -> bool:
+    """
+    Authenticate a device by its ID and password.
+
+    Args:
+        device_id (str): The ID of the device to authenticate.
+        password (str): The password to verify.
+    """
     device = await get_device_by_id(device_id)
     if not device:
         return False
