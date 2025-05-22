@@ -1,10 +1,13 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict, List
-from app.src.web.reading import store_reading_flags, reading_buffers, current_sessions, BUFFER_SIZE
 from data import async_db
 from bson import ObjectId
 from datetime import datetime
 import json
+from uuid import uuid4
+from app.src.utils.plot import plot_ecg_and_return_image
+from app.src.data.reading import get_reading_session
+from fastapi import HTTPException
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
@@ -12,9 +15,44 @@ router = APIRouter(prefix="/ws", tags=["websocket"])
 device_connections: Dict[str, WebSocket] = {}          # device_id: device websocket
 frontend_connections: Dict[str, List[WebSocket]] = {}  # device_id: list of frontend websockets
 # Track which devices should store readings
-store_reading_flags: Dict[str, bool] = {}  # device_id -> bool
 # Cache created document ID
 session_docs = {}  # device_id -> inserted document _id
+
+# In-memory flags and session/buffer per device
+store_reading_flags = {}      # device_id -> bool
+current_sessions = {}         # device_id -> session_id
+reading_buffers = {}          # device_id -> List[float]
+BUFFER_SIZE = 100
+
+@router.post("/toggle/{device_id}")
+async def toggle_reading_store(device_id: str, enable: bool):
+    """
+    Toggle storing of readings. When enabled, starts a new session.
+    """
+    store_reading_flags[device_id] = enable
+
+    if enable:
+        # New session
+        session_id = str(uuid4())
+        current_sessions[device_id] = session_id
+        reading_buffers[device_id] = []
+        return {"device_id": device_id, "store_enabled": True, "session_id": session_id}
+    else:
+        # Clear session
+        current_sessions.pop(device_id, None)
+        reading_buffers.pop(device_id, None)
+        return {"device_id": device_id, "store_enabled": False}
+
+
+@router.get("/download/{session_id}")
+async def download_ecg(session_id: str):
+    try:
+        session = await get_reading_session(session_id)
+        return plot_ecg_and_return_image(session)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+
 
 
 
@@ -56,6 +94,7 @@ async def device_ws(websocket: WebSocket):
 
                     if device_id not in session_docs:
                         # First save: insert new document
+                        print(f"Storing first")
                         result = await async_db.readings.insert_one({
                             "device_id": device_id,
                             "timestamp": datetime.utcnow(),
@@ -65,6 +104,7 @@ async def device_ws(websocket: WebSocket):
                         session_docs[device_id] = result.inserted_id
                     else:
                         # Append to existing document
+                        print(f"Storing subsequent")
                         await async_db.readings.update_one(
                             {"_id": ObjectId(session_docs[device_id])},
                             {"$push": {"data": {"$each": buffer_copy}}}
