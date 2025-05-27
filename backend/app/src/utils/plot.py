@@ -2,11 +2,9 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 
 """
-TODO: Save the array of readings o a separate collection and
-only link them to the metadata document for latent retrieval
-on app first load
-"""
+Utility functions for plotting ECG data and returning images.
 
+All that is needed is just amplitude data and a session ID."""
 def plot_ecg_and_return_image(session: dict):
     # We should look towards plotting only 200 points
     ecg_data = session["data"]

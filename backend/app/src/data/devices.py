@@ -1,12 +1,12 @@
 # app/src/data/device_repository.py
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
-from app.src.models.device import DeviceInDB, DeviceCreate # Assuming your models are here
-from app.src.utils.security import hash_password, verify_password # Your security module
-from data import async_db # Your database connection
+from app.src.models.device import DeviceInDB, DeviceCreate
+from app.src.utils.security import hash_password, verify_password
+from data import async_db
 
 class DeviceRepository:
-    _collection = async_db.devices # Assuming your devices collection is named 'devices'
+    _collection = async_db.devices
 
     @staticmethod
     async def create_device(device_data: DeviceCreate) -> DeviceInDB:
@@ -20,7 +20,7 @@ class DeviceRepository:
             DeviceInDB: The created DeviceInDB object with hashed passwords and MongoDB _id.
         """
         hashed_pwd = hash_password(device_data.password)
-        hashed_public_pwd = hash_password(device_data.public_password) # Hash public password too
+        hashed_public_pwd = hash_password(device_data.public_password)
 
         device_to_insert = DeviceInDB(
             device_id=device_data.device_id,
@@ -28,14 +28,10 @@ class DeviceRepository:
             hashed_public_password=hashed_public_pwd
         )
         
-        # Convert to dictionary, excluding the 'id' field if it's None,
-        # and ensure aliases are used for MongoDB fields like '_id'.
-        # Pydantic's .dict(by_alias=True, exclude_none=True) is great for this.
         insert_result = await DeviceRepository._collection.insert_one(
             device_to_insert.dict(by_alias=True, exclude_none=True)
         )
         
-        # After insertion, the _id is available. Update the Pydantic model.
         device_to_insert.id = insert_result.inserted_id
         return device_to_insert
 
@@ -72,7 +68,7 @@ class DeviceRepository:
                 return DeviceInDB(**device_doc)
             return None
         except Exception:
-            return None # Handle invalid ObjectId string
+            return None
 
     @staticmethod
     async def get_all_devices() -> List[DeviceInDB]:
@@ -101,7 +97,6 @@ class DeviceRepository:
             Optional[DeviceInDB]: The updated DeviceInDB object if found and updated, otherwise None.
         """
         try:
-            # Hash passwords if they are part of the updates
             if 'password' in updates:
                 updates['hashed_password'] = hash_password(updates.pop('password'))
             if 'public_password' in updates:
@@ -115,7 +110,7 @@ class DeviceRepository:
                 return await DeviceRepository.get_device_by_object_id(object_id)
             return None
         except Exception:
-            return None # Handle invalid ObjectId string or other update errors
+            return None
 
     @staticmethod
     async def delete_device(object_id: str) -> bool:
@@ -132,7 +127,7 @@ class DeviceRepository:
             result = await DeviceRepository._collection.delete_one({"_id": ObjectId(object_id)})
             return result.deleted_count == 1
         except Exception:
-            return False # Handle invalid ObjectId string
+            return False
 
     @staticmethod
     async def authenticate_device(device_id: str, plain_password: str) -> Optional[DeviceInDB]:

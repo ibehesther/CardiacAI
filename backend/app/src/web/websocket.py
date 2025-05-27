@@ -10,12 +10,17 @@ from app.src.service.readings_service import (
 from app.src.web.auth import oauth2_scheme
 from app.src.service.auth import check_for_admin
 
+
 router = APIRouter(tags=["websocket"])
 
 @router.post("/readings/save/{device_id}")
 async def toggle_reading_store(device_id: str, enable: bool, token: str = Depends(oauth2_scheme)):
     """
     Toggle storing of readings. When enabled, starts a new session.
+
+    Args:
+        `device_id` (str): The unique identifier for the device.
+        `enable` (bool): True to enable storing, False to disable.
     """
     # Check if the user is an admin
     print(f"Token: {token}")
@@ -31,6 +36,9 @@ async def toggle_reading_store(device_id: str, enable: bool, token: str = Depend
 async def download_ecg(session_id: str, token: str = Depends(oauth2_scheme)):
     """
     Download the ECG data for a given session ID.
+
+    Args:
+        `session_id` (str): The unique identifier for the session
     """
     return await download_ecg_service(session_id)
 
@@ -42,7 +50,7 @@ async def device_ws(websocket: WebSocket):
     await handle_device_websocket_service(websocket)
 
 @router.websocket("/ws/frontend")
-async def frontend_ws(websocket: WebSocket, token: str = Depends(oauth2_scheme)):
+async def frontend_ws(websocket: WebSocket):
     """
     Handles WebSocket connections from the frontend.
     """

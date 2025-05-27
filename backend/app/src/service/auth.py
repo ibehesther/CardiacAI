@@ -4,7 +4,6 @@ from app.src.models.token import Token
 from fastapi import HTTPException, status
 import jwt
 from jwt import decode as jwt_decode, PyJWTError
-from datetime import datetime, timedelta
 from app.src.config import settings
 import datetime as dt
 

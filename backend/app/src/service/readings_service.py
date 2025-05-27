@@ -168,10 +168,8 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
 
     try:
         while True:
-            # You might want to receive messages from the frontend here, e.g., control commands
             message = await websocket.receive_text()
             print(f"Received message from frontend for device {device_id}: {message}")
-            # Process the message if needed
     except WebSocketDisconnect:
         print(f"Frontend disconnected from device {device_id}.")
         if device_id in frontend_connections and websocket in frontend_connections[device_id]:
@@ -181,5 +179,4 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
         print(f"Remaining frontend connections for device {device_id}: {len(frontend_connections.get(device_id, []))}")
     except Exception as e:
         print(f"Error in frontend WebSocket for device {device_id}: {e}")
-        # Handle other potential exceptions and close the connection gracefully
         await websocket.close(code=1011)

@@ -31,6 +31,15 @@ class ECGReading(BaseModel):
         validate_by_field_name = True
 
 class ECGArray(BaseModel):
+    """
+    Represents an ECG data array.
+    Attributes:
+        id (ObjectId): Unique identifier for the ECG data array, mapped from MongoDB's '_id' field.
+        data (List[float]): List of float values representing the ECG data points.
+    Config:
+        - Allows arbitrary types (e.g., ObjectId).
+        - Serializes ObjectId as a string in JSON.
+    """
     id: Annotated[ObjectId, ObjectIdPydanticAnnotation] = Field(default_factory=ObjectId, alias="_id")
     data: List[float]
 

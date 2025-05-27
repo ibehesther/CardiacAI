@@ -21,7 +21,7 @@ class DeviceService:
         Returns:
             Optional[DeviceInDB]: The newly created DeviceInDB object if successful, None if device_id already exists.
         """
-        # Business logic: Check if a DeviceInDB with this ID already exists
+        # Check if a DeviceInDB with this ID already exists
         existing_device = await DeviceRepository.get_device_by_id(device_data.device_id)
         if existing_device:
             # You might log this or raise a custom business exception here
@@ -116,8 +116,6 @@ class DeviceService:
         Returns:
             Optional[DeviceInDB]: The updated DeviceInDB object if successful, None otherwise.
         """
-        # Add any business logic here before calling the repository.
-        # For instance, authorization checks, data transformation, etc.
         updated_device = await DeviceRepository.update_device(object_id, updates)
         return updated_device
     
@@ -132,7 +130,5 @@ class DeviceService:
         Returns:
             bool: True if the DeviceInDB was successfully deleted, False otherwise.
         """
-        # Add any business logic here before calling the repository.
-        # E.g., check if the DeviceInDB is currently in use, cascade deletes, etc.
         deleted = await DeviceRepository.delete_device(object_id)
         return deleted

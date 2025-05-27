@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, status, Body, Depends
 from typing import List, Dict, Any
 from app.src.models.device import DeviceCreate, DeviceInDB
-from app.src.service.device_service import DeviceService # Import your service
+from app.src.service.device_service import DeviceService
 from app.src.service.readings_service import get_device_metadata_service
 from app.src.models.reading import ECGReading
 from app.src.web.auth import oauth2_scheme
@@ -15,9 +15,13 @@ async def create_device_endpoint(device_data: DeviceCreate):
     """
     **Creates a new DeviceInDB.**
 
-    Takes `device_id`, `password`, and `public_password` as input.
-    The passwords will be hashed before storage.
-    Returns the created DeviceInDB object with its database ID.
+    Args:
+        `device_id`: The unique identifier for the device.
+        `password`: Admin password for the device (Admins can control the device).
+        `public_password`: Public password for the device (Users can only view device live data).
+
+    Returns:
+        Returns DeviceInDB object with its database ID.
     """
     new_device = await DeviceService.create_new_device(device_data)
     if new_device is None:
@@ -37,7 +41,7 @@ async def update_device_endpoint(
     **Updates an existing DeviceInDB.**
 
     Provide the `device_id` in the path and a JSON body with the fields to update.
-    For example: `{"name": "New DeviceInDB Name", "location": "Warehouse A"}`.
+    For example: `{"name": "New DeviceInDB Name", "password": "12345678"}`.
     If you include "password" or "public_password", they will be re-hashed.
     Returns the updated DeviceInDB object.
     """
@@ -80,6 +84,31 @@ async def delete_device_endpoint(device_id: str, token: str = Depends(oauth2_sch
 async def get_metadata_for_device(device_id: str, token: str = Depends(oauth2_scheme)):
     """
     Endpoint to get all metadata for a specific DeviceInDB.
+
+    The metadata includes pointers to all ECG readings saved for the device.
+    In these json readings, you can extract the `session_id` and `timestamp` to download the ECG data.
+    Args:
+        device_id (str): The unique identifier for the device.
+    Returns:
+        List[ECGReading]: A list of ECG readings associated with the device.
+
+    Sructure of the response:
+    `[
+    {
+        "_id": "683618b1ff564b83d431dd60",
+        "device_id": "victory",
+        "session_id": "5f750ddd-177e-4669-9149-07e2e959aa29",
+        "timestamp": "2025-05-27T19:55:29.106000",
+        "ecg_array_id": "683618b1ff564b83d431dd5f"
+    },
+    {
+        "_id": "6836192bff564b83d431dd62",
+        "device_id": "victory",
+        "session_id": "f3f2e168-e51b-47d5-bf10-aaac19a0386e",
+        "timestamp": "2025-05-27T19:57:31.376000",
+        "ecg_array_id": "6836192bff564b83d431dd61"
+    }
+    ]`
     """
     try:
         metadata = await get_device_metadata_service(device_id)

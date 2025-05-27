@@ -7,6 +7,10 @@ from pydantic import Field
 from pydantic.json_schema import JsonSchemaValue
 
 class ObjectIdPydanticAnnotation:
+    """
+    Custom Pydantic annotation for handling MongoDB ObjectId fields.
+    This class provides methods to validate and serialize ObjectId fields in Pydantic models.
+    """
     @classmethod
     def validate_object_id(cls, v: Any, handler) -> ObjectId:
         if isinstance(v, ObjectId):
@@ -42,6 +46,9 @@ ExcludedField = Annotated[T, Field(exclude=True)]
 
 # Public model
 class DeviceCreate(BaseModel):
+    """
+    DeviceCreate is a Pydantic model for creating a new device.
+    """
     device_id: str
     password: str
     public_password: str
@@ -49,6 +56,9 @@ class DeviceCreate(BaseModel):
 
 # Stored in DB
 class DeviceInDB(BaseModel):
+    """
+    DeviceInDB is a Pydantic model representing a device stored in the database.
+    """
     id: Annotated[ObjectId, ObjectIdPydanticAnnotation] = Field(
         default_factory=ObjectId, alias="_id"
     )
