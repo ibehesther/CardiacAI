@@ -2,8 +2,6 @@
 #define _NETWORK_HEADER_
 
 #include "main.h"
-#include <Preferences.h>
-#include <WiFi.h>
 
 /**
  * WirelessCommunication class
@@ -159,5 +157,54 @@ private:
         prefs.end();
     }
 };
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+
+)rawliteral";
+
+AsyncWebServer server(80);
+void startLocalServer()
+{
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(200, "text/html", index_html); });
+
+  server.on("/setupWifi", HTTP_POST, [](AsyncWebServerRequest *request) {},
+            NULL, // no file upload handler
+            [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+            {
+    WirelessCommunication Comm;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, data);
+
+    if (error) {
+      request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+      return;
+    }
+
+    const char* ssid = doc["ssid"];
+    const char* password = doc["password"];
+    if (!ssid || !password) {
+      request->send(400, "application/json", "{\"error\":\"Missing SSID or password\"}");
+      return;
+    }
+    Comm.saveWiFiCredentials(ssid, password);
+    // resetButton.nPresses = 1;
+    // resetButton.pressed = true;
+    request->send(200, "application/json", "{\"message\":\"WiFi credentials saved\"}");
+    
+    // Reset ESP here
+    });
+
+  server.begin();
+  Serial.println("Server started");
+}
+
+void stopLocalServer()
+{
+  server.end();
+  Serial.println("Server stopped and WiFi disconnected");
+}
 
 #endif // _NETWORK_HEADER_
