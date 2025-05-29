@@ -3,7 +3,7 @@ This is the main entry point for the FastAPI application.
 """
 
 import uvicorn
-from web import create_app
+from app.src.web import create_app
 
 app = create_app()
 
