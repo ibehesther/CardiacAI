@@ -114,7 +114,7 @@ async def handle_device_websocket_service(websocket: WebSocket):
                         }, buffer_copy)
                         session_docs[device_id] = inserted_id
                     else:
-                        print("Storing subsequent")
+                        # print("Storing subsequent")
                         await ReadingRepository.append_to_array(inserted_id, buffer_copy)
 
                     reading_buffers[device_id].clear()
