@@ -1,15 +1,15 @@
 #include "main.h"
 
-const int ecgPin = 34;
-const int loPlus = 33;
-const int loMinus = 32;
-
 // Sinewave simulating ecg scan
 float angle = 0.0;         // For sine wave simulation
 const float step = 0.1;    // Angle step (radians)
 const float frequency = 1; // Hz (roughly 1 cycle per second)
 const int amplitude = 1500;
 const int offset = 2000;   // Center of wave in the Serial Plotter
+
+
+/*----------------------------- ENTRY POINT --------------------------------*/
+
 
 void setup() {
   Serial.begin(115200);
@@ -18,10 +18,10 @@ void setup() {
 }
 
 void loop() {
-  // if (digitalRead(loPlus) == HIGH || digitalRead(loMinus) == HIGH) {
+  // if (digitalRead(LO_PLUS) == HIGH || digitalRead(LO_MINUS) == HIGH) {
   //   Serial.println("0");
   // } else {
-  //   int ecgValue = analogRead(ecgPin);
+  //   int ecgValue = analogRead(ECG_PIN);
   //   Serial.println(ecgValue);
   // }
 
