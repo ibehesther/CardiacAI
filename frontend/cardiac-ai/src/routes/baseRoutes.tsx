@@ -1,12 +1,12 @@
 import React from "react";
 import { lazy } from "react";
 import Layout from "../layout";
+import AuthGuard from "./AuthGuard";
 
 const Home = lazy(() => import("../pages/home"));
 const About = lazy(() => import("../pages/about"));
 const Login = lazy(() => import("../pages/authentication/login"));
 const Analysis = lazy(() => import("../pages/analysis"));
-
 
 export const routes = [
 	{
@@ -36,9 +36,12 @@ export const routes = [
 	{
 		path: "/analysis",
 		element: (
-			<Layout>
-				<Analysis />
-			</Layout>
+			<AuthGuard>
+				<Layout>
+					<Analysis />
+				</Layout>
+			</AuthGuard>
 		),
 	},
 ];
+

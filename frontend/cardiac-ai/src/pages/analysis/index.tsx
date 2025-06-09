@@ -9,16 +9,42 @@ import {
 	useTheme,
 } from "@mui/material";
 import React, { useRef } from "react";
+import { useAuth } from "../../context/AuthProvider";
+import {
+	Chart,
+	LineController,
+	LineElement,
+	PointElement,
+	LinearScale,
+	CategoryScale,
+	Title,
+	Tooltip,
+} from "chart.js";
+import { saveDeviceReadings } from "../../services/readings";
+
+// Register required components
+Chart.register(
+	LineController,
+	LineElement,
+	PointElement,
+	LinearScale,
+	CategoryScale,
+	Title,
+	Tooltip
+);
 
 const Analysis = () => {
+	const { deviceMetadata } = useAuth();
 	const theme = useTheme();
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
+	const chartRef = useRef<Chart | null>(null);
 
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 	const biggerTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
-	const isLaptop = useMediaQuery(theme.breakpoints.between("lg", 1999));
-	const isDesktop = useMediaQuery(theme.breakpoints.between(2000, 4000));
+
+	const [logMessage, setLogMessage] = React.useState<string>("");
+	const [saveReadings, setSaveReadings] = React.useState<boolean>(false);
 
 	const canvasWidth = isMobile
 		? 320
@@ -30,19 +56,101 @@ const Analysis = () => {
 
 	const canvasHeight = isMobile ? 250 : biggerTablet ? 280 : 300;
 
-	React.useEffect(() => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+	const deviceId = deviceMetadata?.device_id;
+	const socket = new WebSocket(
+		`ws://localhost:8000/api/ws/frontend?device_id=${deviceId}`
+	);
 
-		const ctx = canvas.getContext("2d");
+	const MAX_POINTS = 40;
+
+	const handleSaveReadings = async (enable: boolean) => {
+		const token = localStorage.getItem("cardiac_ai_access_token") || "";
+		const deviceId = localStorage.getItem("cardiac_ai_device_id") || "";
+		try {
+			await saveDeviceReadings(deviceId, token, enable);
+		} catch (error) {
+			console.error("Error saving readings:", error);
+		}
+	};
+
+	React.useEffect(() => {
+		handleSaveReadings(saveReadings);
+	}, [saveReadings]);
+
+	React.useEffect(() => {
+		if (!canvasRef.current) return;
+
+		const ctx = canvasRef.current.getContext("2d");
 		if (!ctx) return;
 
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		if (chartRef.current) {
+			chartRef.current.destroy();
+		}
 
-		// Draw a red rectangle
-		ctx.fillStyle = "red";
-		ctx.fillRect(20, 20, 100, 100);
+		const ecgChart = new Chart(ctx, {
+			type: "line",
+			data: {
+				labels: Array(MAX_POINTS).fill(""),
+				datasets: [
+					{
+						label: "ECG Signal",
+						borderColor: "red",
+						backgroundColor: "rgba(255,0,0,0.1)",
+						data: [] as number[],
+						pointRadius: 0,
+						borderWidth: 2,
+						tension: 0.3,
+					},
+				],
+			},
+			options: {
+				animation: false,
+				responsive: true,
+				scales: {
+					x: { display: false },
+					y: {
+						min: -1,
+						max: 1,
+						title: { display: true, text: "Amplitude" },
+					},
+				},
+			},
+		});
+
+		chartRef.current = ecgChart;
+		return () => {
+			if (chartRef.current) {
+				chartRef.current.destroy();
+				chartRef.current = null;
+			}
+		};
 	}, []);
+
+	socket.onopen = () => {
+		setLogMessage("Connected to backend");
+	};
+
+	socket.onmessage = (event) => {
+		const rawValue = event.data.trim();
+		const ecgPoint = parseFloat(rawValue);
+
+		if (!isNaN(ecgPoint)) {
+			if (chartRef.current) {
+				const dataSet = chartRef.current.data.datasets[0].data as number[];
+				dataSet.push(ecgPoint);
+				if (dataSet.length > MAX_POINTS) {
+					dataSet.shift();
+				}
+				chartRef.current.update("none");
+			}
+		} else {
+			console.warn("Invalid ECG data:", rawValue);
+		}
+	};
+
+	socket.onclose = () => {
+		setLogMessage("Connection closed");
+	};
 	return (
 		<Box
 			sx={{
@@ -76,15 +184,22 @@ const Analysis = () => {
 					}}
 				>
 					<FormControlLabel
-						control={<Switch defaultChecked sx={{ zIndex: 1 }} />}
+						control={
+							<Switch
+								checked={saveReadings}
+								sx={{ zIndex: 1 }}
+								onClick={() => setSaveReadings((prev) => !prev)}
+							/>
+						}
 						label="Save Data"
 					/>
-					<Typography>Device ID: 123456789</Typography>
-					<Typography>Session: 01:23</Typography>
+					<Typography>Device ID: <b>{deviceId}</b></Typography>
+					<Typography>Session: <b>01:23</b></Typography>
 					<Typography>1000 data points: 39 KB</Typography>
 				</Box>
 				<Box sx={{ width: "100%", margin: "1rem 0" }}>
 					<canvas
+						id="analysisCanvas"
 						ref={canvasRef}
 						width={canvasWidth}
 						height={canvasHeight}
@@ -94,6 +209,7 @@ const Analysis = () => {
 							background: "#fff",
 						}}
 					/>
+					<pre id="log">{logMessage}</pre>
 				</Box>
 				<Box
 					sx={{

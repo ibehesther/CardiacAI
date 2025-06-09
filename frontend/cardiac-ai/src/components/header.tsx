@@ -1,8 +1,11 @@
 import { Box, Button, Typography } from "@mui/material";
 import React from "react";
+import { useAuth } from "../context/AuthProvider";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
-	const isUserAuthenticated = false;
+	const {isAuthenticated, logout} = useAuth();
+	const navigate = useNavigate()
 	return (
 		<header>
 			<Box
@@ -57,7 +60,13 @@ const Header = () => {
 					</Typography>
 					<Button
 						variant="contained"
-						onClick={() => window.open("/login", "_self")}
+						onClick={() => {
+							if (isAuthenticated) {
+								logout()
+							} else {
+								navigate("/login");
+							}
+						}}
 						sx={{
 							backgroundColor: "rgba(61, 119, 242, 1)",
 							padding: { xs: "1rem", sm: "1rem 1.5rem" },
@@ -65,7 +74,7 @@ const Header = () => {
 							fontSize: { xs: "0.75rem", sm: "1rem" },
 						}}
 					>
-						{isUserAuthenticated ? "Log out" : "Get Started"}
+						{isAuthenticated ? "Log out" : "Get Started"}
 					</Button>
 				</Box>
 			</Box>

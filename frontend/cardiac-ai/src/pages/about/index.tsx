@@ -101,7 +101,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
@@ -119,7 +119,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
@@ -137,7 +137,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
