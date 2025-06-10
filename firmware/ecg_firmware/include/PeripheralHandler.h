@@ -1,19 +1,48 @@
 // PeripheralHandler.h
-// This header file defines the PeripheralHandler class for controlling an RGB LED.
+// This header file defines the PeripheralHandler class for controlling an RGB LED and a button.
 
 #ifndef PERIPHERAL_HANDLER_H
 #define PERIPHERAL_HANDLER_H
 
-#include <Arduino.h> // Required for basic Arduino functions like pinMode, digitalWrite
+#include <Arduino.h> // Required for basic Arduino functions like pinMode, digitalWrite, attachInterrupt
+
+// Define the minimum delay between button presses to debounce mechanical bounce.
+// This is crucial for accurate click detection.
+#define CLICK_DEBOUNCE_MS 50 // Minimum time in ms between two distinct press detections
+
+// Define the maximum time window for multiple clicks to be considered a sequence (e.g., double click).
+#define MULTI_CLICK_TIMEOUT_MS 500 // Time in ms after a press to wait for more presses
+
+// Forward declaration of the PeripheralHandler class
+class PeripheralHandler;
+
+// Global pointer to the PeripheralHandler instance.
+// This is necessary because attachInterrupt requires a C-style function pointer for the ISR,
+// which cannot directly be a non-static member function. The ISR will use this pointer
+// to access the actual PeripheralHandler instance's members.
+extern PeripheralHandler* globalPeripheralHandler;
 
 /**
- * @brief A class to control an RGB LED based on different operational modes.
+ * @brief Interrupt Service Routine (ISR) for the button.
+ * This function is called every time the button state changes (falling edge).
+ * It updates the button press state and counts presses, handling debouncing.
+ *
+ * NOTE: IRAM_ATTR is applied only to the definition in the .cpp file, not here,
+ * to avoid compilation warnings related to conflicting section attributes.
+ */
+void onButtonInterrupt();
+
+
+/**
+ * @brief A class to control an RGB LED based on different operational modes
+ * and handle button input for mode transitions.
  *
  * This class provides methods to initialize the RGB LED pins and set specific
  * colors (blue, green, red) to indicate the device's connection status.
- * It assumes a common cathode RGB LED, where HIGH turns the LED segment ON.
- * If you have a common anode LED, you will need to invert the HIGH/LOW logic
- * in the _setColor method.
+ * It also manages a button, detecting single and double clicks using an ISR
+ * and providing a non-blocking method to retrieve click counts.
+ * It assumes a common cathode RGB LED, where HIGH turns the LED segment ON,
+ * and an INPUT_PULLUP button, where a falling edge indicates a press.
  */
 class PeripheralHandler {
 public:
@@ -22,12 +51,13 @@ public:
      * @param redPin The digital pin connected to the Red segment of the RGB LED.
      * @param greenPin The digital pin connected to the Green segment of the RGB LED.
      * @param bluePin The digital pin connected to the Blue segment of the RGB LED.
+     * @param buttonPin The digital pin connected to the button (configured as INPUT_PULLUP).
      */
-    PeripheralHandler(int redPin, int greenPin, int bluePin);
+    PeripheralHandler(int redPin, int greenPin, int bluePin, int buttonPin);
 
     /**
-     * @brief Initializes the RGB LED pins.
-     * This method sets the pin modes for the LED pins to OUTPUT.
+     * @brief Initializes the RGB LED and button pins.
+     * This method sets the pin modes and attaches the interrupt to the button pin.
      */
     void begin();
 
@@ -51,10 +81,37 @@ public:
      */
     void turnOff();
 
+    /**
+     * @brief Checks for button clicks and returns the number of clicks detected.
+     * This function should be called regularly in the main loop to process button presses.
+     * It handles debouncing and aggregation of rapid clicks into a single/double click count
+     * based on the `MULTI_CLICK_TIMEOUT_MS`.
+     * @return The number of clicks detected (e.g., 1 for single, 2 for double), or 0 if no clicks.
+     */
+    unsigned int getAndResetClickCount();
+
+    /**
+     * @brief Public method called by the ISR to handle a button press.
+     * It applies debouncing and increments the press counter.
+     * This method is public so the global ISR can access it.
+     */
+    void _handleButtonPress();
+
 private:
     int _redPin;   // Pin for the Red LED segment
     int _greenPin; // Pin for the Green LED segment
     int _bluePin;  // Pin for the Blue LED segment
+    int _buttonPin; // Pin for the button
+
+    /**
+     * @brief Structure to hold button state and click count.
+     * Members are volatile because they are modified within an ISR.
+     */
+    struct Button {
+        volatile bool pressed;         // True if a press has been detected by ISR
+        volatile unsigned long lastPressTime; // Time of the last detected press
+        volatile unsigned int nPresses;     // Number of rapid presses within the timeout window
+    } _button;
 
     /**
      * @brief Helper function to set the state of the RGB LED segments.
