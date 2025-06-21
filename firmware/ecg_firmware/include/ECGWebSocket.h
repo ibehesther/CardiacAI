@@ -5,10 +5,9 @@
 #ifndef ECG_WEBSOCKET_CLIENT_H
 #define ECG_WEBSOCKET_CLIENT_H
 
-#include <Arduino.h>           // For basic Arduino functions like Serial.println
-#include <ArduinoWebsockets.h> // For WebSocket client functionality using ArduinoWebsockets
+#include <Arduino.h>
+#include <ArduinoWebsockets.h>
 
-// Use the websockets namespace for convenience, as it's common with this library.
 using namespace websockets;
 
 /**

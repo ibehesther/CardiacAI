@@ -6,12 +6,11 @@
 #ifndef HOTSPOT_WEB_SERVER_H
 #define HOTSPOT_WEB_SERVER_H
 
-#include <Arduino.h>           // Standard Arduino library
-#include <ESPAsyncWebServer.h> // Required for Async Web Server functionality
-#include <ArduinoJson.h>       // Required for parsing JSON data from web requests
-#include "WirelessCommunication.h" // To interact with the WirelessCommunication class for WiFi setup
+#include <Arduino.h>
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h> 
+#include "WirelessCommunication.h"
 
-// Forward declaration of the HotspotWebServer class (not strictly necessary but good practice)
 class HotspotWebServer;
 
 /**
@@ -62,11 +61,10 @@ private:
     bool _wifiSwitchRequested; // Flag to indicate if a WiFi mode switch has been requested
 
     /**
-     * @brief Helper function to generate a JSON string with basic device information.
-     * This can be expanded to include more device-specific details.
-     * @return A String containing device information in JSON format.
+     * @brief Helper function to perform a WiFi scan and return results as a JSON array.
+     * @return A String containing scanned networks in JSON format.
      */
-    String getDeviceInfoJson();
+    String getScannedNetworksJson();
 };
 
 #endif // HOTSPOT_WEB_SERVER_H

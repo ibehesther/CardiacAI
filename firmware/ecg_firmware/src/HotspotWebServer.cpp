@@ -32,6 +32,9 @@ void HotspotWebServer::begin() {
                     button:hover { background-color: #0056b3; }
                     p { text-align: center; color: #666; font-size: 0.9em; }
                     .status { text-align: center; margin-top: 15px; font-weight: bold; }
+                    #networksList { list-style: none; padding: 0; margin-top: 15px; border-top: 1px solid #eee; }
+                    #networksList li { padding: 8px 0; border-bottom: 1px solid #eee; cursor: pointer; }
+                    #networksList li:hover { background-color: #f9f9f9; }
                 </style>
             </head>
             <body>
@@ -45,6 +48,12 @@ void HotspotWebServer::begin() {
                         <button type="submit">Save & Connect</button>
                     </form>
                     <p class="status" id="responseStatus"></p>
+
+                    <hr>
+                    <h3>Available WiFi Networks</h3>
+                    <button id="scanButton">Scan Networks</button>
+                    <p id="scanStatus"></p>
+                    <ul id="networksList"></ul>
                 </div>
                 <script>
                     document.getElementById('wifiForm').addEventListener('submit', async function(event) {
@@ -81,11 +90,53 @@ void HotspotWebServer::begin() {
                             responseStatus.style.color = 'red';
                         }
                     });
+
+                    document.getElementById('scanButton').addEventListener('click', async function() {
+                        const networksList = document.getElementById('networksList');
+                        const scanStatus = document.getElementById('scanStatus');
+                        scanStatus.textContent = 'Scanning...';
+                        networksList.innerHTML = ''; // Clear previous list
+
+                        try {
+                            const response = await fetch('/scanNetworks');
+                            const networks = await response.json();
+
+                            if (networks.length === 0) {
+                                scanStatus.textContent = 'No networks found.';
+                            } else {
+                                scanStatus.textContent = `Found ${networks.length} networks:`;
+                                networks.forEach(net => {
+                                    const li = document.createElement('li');
+                                    li.textContent = `${net.ssid} (RSSI: ${net.rssi})`;
+                                    li.dataset.ssid = net.ssid; // Store SSID in data attribute
+                                    li.addEventListener('click', function() {
+                                        document.getElementById('ssid').value = this.dataset.ssid;
+                                    });
+                                    networksList.appendChild(li);
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error scanning networks:', error);
+                            scanStatus.textContent = 'Error scanning networks.';
+                        }
+                    });
+
+                    // Optional: Trigger a scan on page load
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('scanButton').click();
+                    });
+
                 </script>
             </body>
             </html>
         )rawliteral"); // R"rawliteral(...)rawliteral" allows multi-line string without escaping
     });
+
+    // Define the new /scanNetworks route to perform and return WiFi scan results.
+    _server.on("/scanNetworks", HTTP_GET, [this](AsyncWebServerRequest *request){
+        request->send(200, "application/json", getScannedNetworksJson());
+    });
+
 
     // Define the /setupWifi POST route to receive new WiFi credentials.
     _server.on("/setupWifi", HTTP_POST,
@@ -139,6 +190,33 @@ void HotspotWebServer::begin() {
 void HotspotWebServer::end() {
     _server.end(); // Stops the server instance.
     Serial.println("[HotspotWebServer] Web server stopped.");
+}
+
+
+// Helper function to perform a WiFi scan and return results as a JSON array.
+String HotspotWebServer::getScannedNetworksJson() {
+    Serial.println("[HotspotWebServer] Starting WiFi scan...");
+    // Scan for WiFi networks. 'true' for hidden networks, 'false' for blocking scan.
+    // For a web server, a blocking scan is generally not ideal as it can freeze the server.
+    // However, for simplicity here, we use blocking. Consider asynchronous scanning for production.
+    int n = WiFi.scanNetworks();
+    Serial.printf("[HotspotWebServer] Scan done. Found %d networks.\n", n);
+
+    JsonDocument doc; // Adjust size based on expected number of networks
+    JsonArray networksArray = doc.to<JsonArray>();
+
+    for (int i = 0; i < n; ++i) {
+        JsonObject network = networksArray.add<JsonObject>();
+        network["ssid"] = WiFi.SSID(i);
+        network["rssi"] = WiFi.RSSI(i); // Signal strength
+        network["channel"] = WiFi.channel(i);
+        // Add more details like encryption type if needed: WiFi.encryptionType(i)
+    }
+
+    String jsonOutput;
+    serializeJson(doc, jsonOutput);
+    WiFi.scanDelete(); // Clear scan results to free memory
+    return jsonOutput;
 }
 
 bool HotspotWebServer::isWifiSwitchRequested() {

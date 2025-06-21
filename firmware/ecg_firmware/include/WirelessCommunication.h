@@ -4,12 +4,11 @@
 #ifndef WIRELESS_COMMUNICATION_H
 #define WIRELESS_COMMUNICATION_H
 
-#include <Arduino.h>     // For basic Arduino functions and types
-#include <WiFi.h>        // For ESP32 WiFi functionalities
+#include <Arduino.h>
+#include <WiFi.h>
 #include <Preferences.h> // For saving and retrieving data from non-volatile storage (NVS)
 
-// Define the namespace for Preferences storage.
-// This is a unique name for your application's preferences.
+// Namespace for Preferences storage.
 #define WIFI_CREDS "wifi_creds"
 
 /**

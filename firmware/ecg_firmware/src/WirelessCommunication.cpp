@@ -5,6 +5,7 @@
 WirelessCommunication::WirelessCommunication() {
     // Load credentials from Preferences at startup
     // This makes the latest saved credentials available immediately upon class instantiation.
+    Serial.println("[WirelessCommunication] Initializing...");
     ssid = getSavedSSID();
     password = getSavedPassword();
 }
@@ -140,6 +141,9 @@ String WirelessCommunication::getSavedSSID() {
     prefs.begin(WIFI_CREDS, true); // true means read-only mode
     String saved_ssid = prefs.getString("ssid", ""); // Default to empty string if not found
     prefs.end();
+
+    Serial.print("SSID: ");
+    Serial.println(saved_ssid); // Debug print to verify SSID retrieval
     return saved_ssid;
 }
 
@@ -148,6 +152,9 @@ String WirelessCommunication::getSavedPassword() {
     prefs.begin(WIFI_CREDS, true);
     String saved_password = prefs.getString("password", "");
     prefs.end();
+
+    Serial.print("PASSWORD: ");
+    Serial.println(saved_password); // Debug print to verify password retrieval
     return saved_password;
 }
 

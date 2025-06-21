@@ -4,16 +4,14 @@
 #ifndef PERIPHERAL_HANDLER_H
 #define PERIPHERAL_HANDLER_H
 
-#include <Arduino.h> // Required for basic Arduino functions like pinMode, digitalWrite, attachInterrupt
+#include <Arduino.h>
 
 // Define the minimum delay between button presses to debounce mechanical bounce.
-// This is crucial for accurate click detection.
 #define CLICK_DEBOUNCE_MS 50 // Minimum time in ms between two distinct press detections
 
 // Define the maximum time window for multiple clicks to be considered a sequence (e.g., double click).
 #define MULTI_CLICK_TIMEOUT_MS 500 // Time in ms after a press to wait for more presses
 
-// Forward declaration of the PeripheralHandler class
 class PeripheralHandler;
 
 // Global pointer to the PeripheralHandler instance.

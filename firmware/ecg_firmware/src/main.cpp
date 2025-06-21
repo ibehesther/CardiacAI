@@ -15,23 +15,23 @@
 // IMPORTANT: Adjust these pin numbers to match your actual ESP32 wiring.
 
 // AD8232 ECG Sensor Pins
-const int ECG_OUTPUT_PIN = 34; // Analog pin connected to AD8232's OUTPUT (e.g., GPIO34, GPIO35, GPIO32 on ESP32)
-const int LO_PLUS_PIN = 33;    // Digital pin connected to AD8232's LO+ (Lead-Off +)
-const int LO_MINUS_PIN = 32;   // Digital pin connected to AD8232's LO- (Lead-Off -)
+const int ECG_OUTPUT_PIN = 26; // Analog pin connected to AD8232's OUTPUT (e.g., GPIO34, GPIO35, GPIO32 on ESP32)
+const int LO_PLUS_PIN = 14;    // Digital pin connected to AD8232's LO+ (Lead-Off +)
+const int LO_MINUS_PIN = 33;   // Digital pin connected to AD8232's LO- (Lead-Off -)
 
 // RGB LED Pins (Common Cathode assumed: HIGH turns segment ON)
-const int RGB_RED_PIN = 13;    // Example pin for Red LED (e.g., GPIO13)
-const int RGB_GREEN_PIN = 12;  // Example pin for Green LED (e.g., GPIO12)
-const int RGB_BLUE_PIN = 14;   // Example pin for Blue LED (e.g., GPIO14)
+const int RGB_RED_PIN = 18;    // Example pin for Red LED (e.g., GPIO13)
+const int RGB_GREEN_PIN = 4;  // Example pin for Green LED (e.g., GPIO12)
+const int RGB_BLUE_PIN = 15;   // Example pin for Blue LED (e.g., GPIO14)
 
 // Button Pin (configured as INPUT_PULLUP: LOW when pressed)
-const int BUTTON_PIN = 27;     // Example pin for a push button (e.g., GPIO27)
+const int BUTTON_PIN = 19;     // Example pin for a push button (e.g., GPIO27)
 
 // --- WebSocket Server Details ---
 // IMPORTANT: Replace with your actual WebSocket server IP, port, and path.
-const char* WS_SERVER_IP = "192.168.1.100"; // Example: IP address of your WebSocket server
-const uint16_t WS_SERVER_PORT = 8080;         // Example: Port of your WebSocket server
-const char* WS_SERVER_PATH = "/ws";          // Example: Path on your WebSocket server
+const char* WS_SERVER_IP = "127.0.0.1"; // Example: IP address of your WebSocket server
+const uint16_t WS_SERVER_PORT = 8000;         // Example: Port of your WebSocket server
+const char* WS_SERVER_PATH = "api/ws/frontend?device_id=cardiacai-123";          // Example: Path on your WebSocket server
 
 // --- Hotspot Details (used when entering Hotspot mode) ---
 const char* HOTSPOT_SSID = "ECG_Hotspot_AP";
@@ -40,12 +40,11 @@ const char* HOTSPOT_PASSWORD = "ecg12345"; // Must be at least 8 characters for 
 // --- Reconnection Intervals ---
 const unsigned long RECONNECT_INTERVAL_MS = 10000; // Attempt reconnect every 10 seconds
 
-// --- Global Class Instances ---
 AD8232_ECG ecgSensor(ECG_OUTPUT_PIN, LO_PLUS_PIN, LO_MINUS_PIN);
 WirelessCommunication wirelessComm;
 ECGWebSocketClient wsClient;
 PeripheralHandler ledHandler(RGB_RED_PIN, RGB_GREEN_PIN, RGB_BLUE_PIN, BUTTON_PIN);
-// The HotspotWebServer takes a reference to wirelessComm so it can save/change WiFi settings
+
 HotspotWebServer hotspotServer(wirelessComm);
 
 // --- Global variables for non-blocking timing ---
@@ -54,18 +53,29 @@ unsigned long lastWsReconnectAttempt = 0;
 
 // --- Global variable to track if the Hotspot server is active ---
 bool hotspotServerActive = false;
+unsigned int clicks;
 
 
 void setup() {
-    Serial.begin(115200); // Initialize serial communication for debugging
+    Serial.begin(115200);
     Serial.println("\n--- ECG Machine Booting Up ---");
 
-    // Initialize all peripheral components
     ecgSensor.begin();
-    ledHandler.begin(); // Initializes RGB LED and button interrupt
+    ledHandler.begin();
+
+    ledHandler.setBlue(); // Set LED to blue initially to indicate startup
+    delay(1000); // Short delay to show blue LED before switching modes
+    ledHandler.setGreen(); // Set LED to green to indicate WiFi mode
+    delay(1000); // Short delay to show green LED before attempting WiFi connection
+    ledHandler.setRed(); // Set LED to red to indicate Hotspot mode
+    ledHandler.turnOff(); // Turn off LED to indicate no connection yet
+
+        // --- Button Click Handling for Mode Transitions ---
+    clicks = ledHandler.getAndResetClickCount();
+
 
     // Initial wireless setup:
-    // Attempt to connect to WiFi using saved credentials (Station mode).
+    // Attempt to connect to WiFi using saved credentials
     // If successful, try to connect to the WebSocket server.
     // If WiFi connection fails, activate Hotspot mode.
 
@@ -77,20 +87,19 @@ void setup() {
     unsigned long wifiConnectStartTime = millis();
     while (!wirelessComm.isConnected() && (millis() - wifiConnectStartTime < 20000)) {
         Serial.print(".");
-        delay(500); // Small delay to prevent busy-waiting and allow connection to establish
+        delay(300);
     }
 
     if (wirelessComm.isConnected()) {
         Serial.println("\nWiFi connected successfully!");
-        // If WiFi is connected, try to establish WebSocket connection immediately.
         Serial.println("Attempting WebSocket connection...");
         wsClient.connect(WS_SERVER_IP, WS_SERVER_PORT, WS_SERVER_PATH);
     } else {
         Serial.println("\nFailed to connect to WiFi. Entering Hotspot mode...");
-        // If initial WiFi connection fails, activate Hotspot mode for configuration.
         wirelessComm.activateHotspotMode(HOTSPOT_SSID, HOTSPOT_PASSWORD);
-        hotspotServer.begin(); // Start the web server immediately in Hotspot mode
+        hotspotServer.begin();
         hotspotServerActive = true;
+        ledHandler.setRed(); // Set LED to red to indicate Hotspot mode
     }
 
     Serial.println("Setup complete. Starting main loop.");
@@ -118,8 +127,6 @@ void loop() {
     }
 
 
-    // --- Button Click Handling for Mode Transitions ---
-    unsigned int clicks = ledHandler.getAndResetClickCount();
 
     if (clicks == 1) { // Single click: Attempt to switch to WiFi Station mode and connect to WebSocket
         Serial.println("Single click detected! Attempting to activate WiFi mode...");
@@ -134,8 +141,8 @@ void loop() {
         }
     } else if (clicks == 2) { // Double click: Force switch to Hotspot mode
         Serial.println("Double click detected! Activating Hotspot mode...");
-        wirelessComm.activateHotspotMode(HOTSPOT_SSID, HOTSPOT_PASSWORD); // Activate Hotspot with defined credentials
         wsClient.disconnect(); // Disconnect WebSocket client if switching to Hotspot mode
+        wirelessComm.activateHotspotMode(HOTSPOT_SSID, HOTSPOT_PASSWORD); // Activate Hotspot with defined credentials
         if (!hotspotServerActive) { // Only start server if not already active
             hotspotServer.begin(); // Start the web server
             hotspotServerActive = true;
