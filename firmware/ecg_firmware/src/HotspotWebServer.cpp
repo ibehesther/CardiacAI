@@ -173,12 +173,12 @@ void HotspotWebServer::begin() {
             // Save the new WiFi credentials using the WirelessCommunication instance.
             _wirelessComm.saveWiFiCredentials(ssid, password);
 
-            // Send success response FIRST, then set flag for main loop to switch WiFi mode.
-            request->send(200, "application/json", "{\"message\":\"WiFi credentials saved! Attempting to connect to WiFi in a moment...\"}");
-
             // Set the flag to indicate that a WiFi switch is requested.
             // The actual mode change will be handled in the main loop.
             _wifiSwitchRequested = true;
+
+            // Send success response FIRST, then set flag for main loop to switch WiFi mode.
+            request->send(200, "application/json", "{\"message\":\"WiFi credentials saved! Attempting to connect to WiFi in a moment...\"}");
         }
     );
 

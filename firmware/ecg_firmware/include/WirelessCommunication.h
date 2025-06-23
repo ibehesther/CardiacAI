@@ -6,7 +6,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <Preferences.h> // For saving and retrieving data from non-volatile storage (NVS)
+#include <Preferences.h>
 
 // Namespace for Preferences storage.
 #define WIFI_CREDS "wifi_creds"
@@ -22,6 +22,12 @@ public:
      * Initializes the class and loads saved WiFi credentials from NVS.
      */
     WirelessCommunication();
+
+    /**
+     * @brief Initializes the wireless communication system.
+     * This method should be called in setup() to prepare the WiFi module.
+     */
+    void begin();
 
     /**
      * @brief Activates WiFi Station (client) mode and attempts to connect to a saved network.
@@ -82,10 +88,13 @@ public:
      */
     String getMode();
 
+    String getLocalMode();
+
 private:
     Preferences prefs; // Instance of the Preferences library for NVS access
     String ssid;       // Stored WiFi SSID
     String password;   // Stored WiFi password
+    String mode;       // Current wireless mode (e.g., "wifi", "hotspot", "off")
 
     /**
      * @brief Saves the current wireless mode (e.g., "wifi", "hotspot", "off") to NVS.

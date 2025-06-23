@@ -17,13 +17,13 @@
   </style>
 </head>
 <body>
-  <h1>Live ECG Feed for Device: cardiacai-123</h1>
+  <h1>Live ECG Feed for Dhevice: cardiacai-123</h1>
   <canvas id="ecgChart"></canvas>
   <pre id="log"></pre>
 
   <script>
     const deviceId = "cardiacai-123";
-    const socket = new WebSocket(`ws://172.187.168.3/api/ws/frontend?device_id=${deviceId}`);
+    const socket = new WebSocket(`ws://127.0.0.1:8000/api/ws/frontend?device_id=${deviceId}`);
     const log = document.getElementById("log");
 
     const ctx = document.getElementById('ecgChart').getContext('2d');

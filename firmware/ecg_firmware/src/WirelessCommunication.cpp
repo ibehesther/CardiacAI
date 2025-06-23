@@ -1,20 +1,35 @@
-// WirelessCommunication.cpp
-// This file implements the methods defined in the WirelessCommunication class.
 #include "WirelessCommunication.h"
 
 WirelessCommunication::WirelessCommunication() {
-    // Load credentials from Preferences at startup
-    // This makes the latest saved credentials available immediately upon class instantiation.
-    Serial.println("[WirelessCommunication] Initializing...");
+    Serial.println("[WirelessCommunication] Initialized");
+}
+
+void WirelessCommunication::begin() {
+    // Initialize Preferences storage for WiFi credentials
+    prefs.begin(WIFI_CREDS, false);
+
+    // Load saved WiFi credentials
     ssid = getSavedSSID();
     password = getSavedPassword();
+
+    // Set initial mode to "off" if not already set
+    if (getMode().isEmpty()) {
+        setMode("off");
+        mode = "off"; // Initialize mode variable
+    }
+    else {
+        mode = getMode();
+    }
+
+    Serial.println("[WirelessCommunication] Begin completed");
 }
 
 void WirelessCommunication::activateWiFiMode() {
+
     // Check if credentials exist before attempting to connect
     if (ssid.isEmpty() || password.isEmpty()) {
         Serial.println("No saved WiFi credentials found!");
-        return; // Exit if no credentials to connect with
+        return;
     }
 
     // Disconnect from any previous connections and set WiFi mode to Station
@@ -24,7 +39,9 @@ void WirelessCommunication::activateWiFiMode() {
 
     // Attempt to connect to the saved WiFi network
     WiFi.begin(ssid.c_str(), password.c_str());
-    Serial.print("Connecting to WiFi");
+    // WiFi.begin("Electrify", "Victory111");
+    Serial.print("Connecting to WiFi/nSSID:");
+    Serial.print(ssid);
 
     // Connection retry loop
     int retries = 0;
@@ -33,17 +50,15 @@ void WirelessCommunication::activateWiFiMode() {
         Serial.print(".");
         retries++;
     }
-
+    setMode("wifi"); // Update the stored mode to "wifi"
+    mode = "wifi"; // Update the in-memory mode variable
     // Check final connection status
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nWiFi connected");
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
-        setMode("wifi"); // Update the stored mode to "wifi"
     } else {
         Serial.println("\nFailed to connect to WiFi");
-        // No need to set mode to "off" explicitly here, as the previous mode persists if connection fails.
-        // It might be useful to explicitly handle this if a "failed_wifi" mode is desired.
     }
 }
 
@@ -53,7 +68,6 @@ bool WirelessCommunication::isConnected() {
 }
 
 bool WirelessCommunication::connectWiFi() {
-    // If already connected, no need to reconnect
     if (WiFi.status() == WL_CONNECTED) {
         return true;
     }
@@ -75,13 +89,13 @@ bool WirelessCommunication::connectWiFi() {
         Serial.print(".");
         retries++;
     }
+    setMode("wifi");
 
     // Check final connection status and update mode if successful
     if (WiFi.status() == WL_CONNECTED) {
         Serial.print("\nWiFi connected: ");
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
-        setMode("wifi");
         return true;
     } else {
         Serial.println("\nFailed to connect to WiFi");
@@ -109,65 +123,65 @@ void WirelessCommunication::activateHotspotMode(const char *ssid_ap, const char 
         Serial.print("Hotspot IP: ");
         Serial.println(WiFi.softAPIP());
         setMode("hotspot"); // Update the stored mode to "hotspot"
+        mode = "hotspot"; // Update the in-memory mode variable
     } else {
         Serial.println("Failed to start hotspot");
     }
 }
 
 void WirelessCommunication::turnOffWireless() {
-    // Disconnect and turn off WiFi completely
     WiFi.disconnect(true);
-    delay(100); // Give time for disconnect to process
-    setMode("off"); // Update the stored mode to "off"
+    delay(100);
+    setMode("off");
+    mode = "off"; // Update the in-memory mode variable
     Serial.println("Wireless turned off");
 }
 
-void WirelessCommunication::saveWiFiCredentials(const char *_ssid, const char *_password) {
-    // Open Preferences in read-write mode and save SSID and password
-    prefs.begin(WIFI_CREDS, false); // false means read-write mode
-    prefs.putString("ssid", _ssid);
-    prefs.putString("password", _password);
-    prefs.end(); // Close Preferences
+void WirelessCommunication::saveWiFiCredentials(const char *_sssid, const char *_passsword) {
+    prefs.begin(WIFI_CREDS, false);
+    prefs.putString("ssid", _sssid);
+    prefs.putString("password", _passsword);
+    prefs.end();
 
     // Update the in-memory variables immediately
-    ssid = String(_ssid);
-    password = String(_password);
+    ssid = String(_sssid);
+    password = String(_passsword);
 
     Serial.println("WiFi credentials saved");
 }
 
 String WirelessCommunication::getSavedSSID() {
-    // Open Preferences in read-only mode and retrieve SSID
-    prefs.begin(WIFI_CREDS, true); // true means read-only mode
-    String saved_ssid = prefs.getString("ssid", ""); // Default to empty string if not found
+    prefs.begin(WIFI_CREDS, false);
+    String saved_ssid = prefs.getString("ssid", "");
     prefs.end();
 
     Serial.print("SSID: ");
-    Serial.println(saved_ssid); // Debug print to verify SSID retrieval
+    Serial.println(saved_ssid);
     return saved_ssid;
 }
 
 String WirelessCommunication::getSavedPassword() {
-    // Open Preferences in read-only mode and retrieve password
-    prefs.begin(WIFI_CREDS, true);
+    prefs.begin(WIFI_CREDS, false);
     String saved_password = prefs.getString("password", "");
     prefs.end();
 
     Serial.print("PASSWORD: ");
-    Serial.println(saved_password); // Debug print to verify password retrieval
+    Serial.println(saved_password);
     return saved_password;
 }
 
 String WirelessCommunication::getMode() {
-    // Open Preferences in read-only mode and retrieve the current mode
-    prefs.begin(WIFI_CREDS, true);
-    String mode = prefs.getString("mode", "off"); // Default to "off" if not found
+    prefs.begin(WIFI_CREDS, false);
+    String mmode = prefs.getString("mode", "off");
     prefs.end();
-    return mode;
+    return mmode;
+}
+
+String WirelessCommunication::getLocalMode() {
+    return mode; 
 }
 
 void WirelessCommunication::setMode(const char *mode) {
-    // Open Preferences in read-write mode and save the current wireless mode
     prefs.begin(WIFI_CREDS, false);
     prefs.putString("mode", mode);
     prefs.end();

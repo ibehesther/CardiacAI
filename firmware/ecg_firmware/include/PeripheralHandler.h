@@ -6,11 +6,9 @@
 
 #include <Arduino.h>
 
-// Define the minimum delay between button presses to debounce mechanical bounce.
-#define CLICK_DEBOUNCE_MS 50 // Minimum time in ms between two distinct press detections
+#define CLICK_DEBOUNCE_MS 180 // Minimum time in ms between two distinct press detections
 
-// Define the maximum time window for multiple clicks to be considered a sequence (e.g., double click).
-#define MULTI_CLICK_TIMEOUT_MS 500 // Time in ms after a press to wait for more presses
+#define MULTI_CLICK_TIMEOUT_MS 1000 // Time in ms after a press to wait for more presses
 
 class PeripheralHandler;
 
@@ -106,7 +104,6 @@ private:
      * Members are volatile because they are modified within an ISR.
      */
     struct Button {
-        volatile bool pressed;         // True if a press has been detected by ISR
         volatile unsigned long lastPressTime; // Time of the last detected press
         volatile unsigned int nPresses;     // Number of rapid presses within the timeout window
     } _button;
