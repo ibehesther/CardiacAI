@@ -23,7 +23,8 @@
 
   <script>
     const deviceId = "cardiacai-123";
-    const socket = new WebSocket(`ws://172.187.168.3/api/ws/frontend?device_id=${deviceId}`);
+    // const deviceId = "Online"
+    const socket = new WebSocket(`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`);
     const log = document.getElementById("log");
 
     const ctx = document.getElementById('ecgChart').getContext('2d');

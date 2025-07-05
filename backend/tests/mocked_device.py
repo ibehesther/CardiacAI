@@ -3,10 +3,11 @@ import websockets
 import math
 import time
 
-DEVICE_ID = "cardiacai-123"  # Use any unique ID
+# DEVICE_ID = "cardiacai-123"  # Use any unique ID
+DEVICE_ID = "Online"
 
 async def send_data():
-    uri = f"ws://172.187.168.3/api/ws/device?device_id={DEVICE_ID}"
+    uri = f"ws://localhost:8000/api/ws/device?device_id={DEVICE_ID}"
     async with websockets.connect(uri) as websocket:
         print(f"[Device] Connected as {DEVICE_ID}")
 
