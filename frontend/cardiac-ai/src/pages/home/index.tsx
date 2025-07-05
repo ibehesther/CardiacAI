@@ -13,7 +13,7 @@ const Home = () => {
 					display: "flex",
 					flexDirection: "row",
 					gap: "1rem",
-					padding: "2rem 2rem 0",
+					padding: "2rem 3rem 0",
 					alignItems: "center",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}

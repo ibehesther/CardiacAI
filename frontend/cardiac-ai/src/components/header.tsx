@@ -15,12 +15,13 @@ const Header = () => {
 					left: 0,
 					right: 0,
 					backgroundColor: "rgba(249, 250, 255, 1)",
-					padding: "1.5rem",
+					padding: "1.5rem 3rem",
 					display: "flex",
 					justifyContent: "space-between",
 					alignItems: "center",
 					height: "4rem",
-					zIndex: 100
+					zIndex: 100,
+					borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
 				}}
 			>
 				<Typography
