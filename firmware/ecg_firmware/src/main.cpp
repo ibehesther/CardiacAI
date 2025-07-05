@@ -6,9 +6,9 @@
 
 
 // AD8232 ECG Sensor Pins
-const int ECG_OUTPUT_PIN = 26;
+const int ECG_OUTPUT_PIN = 32;
 const int LO_PLUS_PIN = 14;
-const int LO_MINUS_PIN = 33;
+const int LO_MINUS_PIN = 35;
 
 // RGB LED Pins (Common Cathode assumed: HIGH turns segment ON)
 const int RGB_RED_PIN = 18;
@@ -18,7 +18,7 @@ const int RGB_BLUE_PIN = 15;
 const int BUTTON_PIN = 19;
 
 // --- WebSocket Server Details ---
-const char* WS_SERVER_IP = "192.168.0.149";
+const char* WS_SERVER_IP = "api.cardiacai.tech";
 const uint16_t WS_SERVER_PORT = 8000;
 const char* WS_SERVER_PATH = "/api/ws/device?device_id=cardiacai-123";
 
@@ -52,31 +52,36 @@ void setup() {
     clicks = ledHandler.getAndResetClickCount();
 
     delay(2000);
-    ledHandler.setBlue();
+    ledHandler.setRed(1);
     delay(500);
-    ledHandler.setGreen();
+    ledHandler.setRed(0);
+    ledHandler.setGreen(1);
     delay(500);
-    ledHandler.setRed();
+    ledHandler.setGreen(0);
+    ledHandler.setBlue(1);
     delay(500);
-    ledHandler.turnOff();
+    ledHandler.setBlue(0);
+    delay(500);
+    ledHandler.setRed(1);
 
     Serial.println("Attempting to connect to saved WiFi...");
     wirelessComm.activateWiFiMode();                          // This will try to connect to previously saved WiFi
 
     unsigned long wifiConnectStartTime = millis();
     if (wirelessComm.isConnected()) {
-        ledHandler.setGreen();
+        ledHandler.setGreen(1);
         Serial.println("\nWiFi connected successfully!");
         Serial.println("Attempting WebSocket connection...");
         if(wsClient.connect(WS_SERVER_IP, WS_SERVER_PORT, WS_SERVER_PATH)) {
-            ledHandler.setBlue();
+            ledHandler.setBlue(1);
             Serial.println("WebSocket connected successfully!");
         } else {
+            ledHandler.setBlue(0);
             Serial.println("Failed to connect to WebSocket server.");
         }
     }
     else {
-        ledHandler.turnOff();
+        ledHandler.setGreen(0);
         Serial.println("\nFailed to connect to WiFi. Will keep trying...");
     }
     // } else {
@@ -91,7 +96,6 @@ void setup() {
 }
 
 void loop() {
-    // Refresh connection
     wsClient.loop();
 
     // --- Handle WiFi Switch Request from Hotspot Web Server ---
@@ -106,10 +110,12 @@ void loop() {
         if (wirelessComm.isConnected()) {
            if (wsClient.connect(WS_SERVER_IP, WS_SERVER_PORT, WS_SERVER_PATH)) {
             Serial.println("WebSocket connected successfully after WiFi switch!");
-            ledHandler.setBlue();
+            ledHandler.setBlue(1);
+            ledHandler.setGreen(1);
            } else {
+            ledHandler.setBlue(0);
             Serial.println("Failed to connect to WebSocket server after WiFi switch.");
-            ledHandler.setGreen();
+            ledHandler.setGreen(1);
            };
         }
     }
@@ -124,29 +130,31 @@ void loop() {
         }
         wirelessComm.activateWiFiMode();
         if (wirelessComm.isConnected()) {
+            ledHandler.setGreen(1); 
+            // Attempt to connect to WebSocket server
            if (wsClient.connect(WS_SERVER_IP, WS_SERVER_PORT, WS_SERVER_PATH)) {
             Serial.println("WebSocket connected successfully after WiFi switch!");
-            ledHandler.setBlue();
+            ledHandler.setBlue(1);
            } else {
             Serial.println("Failed to connect to WebSocket server after WiFi switch.");
-            ledHandler.setGreen();
+            ledHandler.setBlue(0);
            }
         }
         else {
             Serial.println("Failed to connect to WiFi. Will keep trying after Some time.");
-            ledHandler.turnOff();
+            ledHandler.setGreen(0);
 
         }
     } else if (clicks == 2) { // Double click: Force switch to Hotspot mode
         Serial.println("Double click detected! Activating Hotspot mode...");
         wsClient.disconnect();
         wirelessComm.activateHotspotMode(HOTSPOT_SSID, HOTSPOT_PASSWORD);
+        ledHandler.setBlue(0);
+        ledHandler.toggleGreenSixTimes(300); // Blink green LED 6 times
         if (!hotspotServerActive) {
             hotspotServer.begin();
             hotspotServerActive = true;
         }
-        ledHandler.setRed();
-        
     }
 
     // --- ECG Data Reading and Transmission ---
@@ -155,36 +163,38 @@ void loop() {
     String localMode = wirelessComm.getLocalMode();
     if (localMode == "wifi") {
         int ecgValue = ecgSensor.readECG();
-        Serial.print("ECG Value: ");
         Serial.println(ecgValue);
 
-        if (ecgSensor.isSensorConnected()) { // Check if ECG leads are properly attached
-            wsClient.sendECGValue(ecgValue);
-        } else {
-            Serial.println("ECG Leads OFF!");
-        }
+        // if (ecgSensor.isSensorConnected()) { // Check if ECG leads are properly attached
+        wsClient.sendECGValue(ecgValue);
+    }
+        else {
+        ledHandler.toggleGreenSixTimes(300); // Blink green LED 6 times if WiFi is not connected
     }
 
-    if (localMode != "hotspot" && !wirelessComm.isConnected() && (millis() - lastWiFiReconnectAttempt > RECONNECT_INTERVAL_MS)) {
+    if (localMode == "wifi" && !wirelessComm.isConnected() && (millis() - lastWiFiReconnectAttempt > RECONNECT_INTERVAL_MS)) {
+        ledHandler.setGreen(0);
+        ledHandler.setBlue(0);
         Serial.println("WiFi lost or not connected. Re-attempting WiFi connection...");
         wirelessComm.activateWiFiMode();
         lastWiFiReconnectAttempt = millis();
         if (wirelessComm.isConnected()) {
-            ledHandler.setGreen();
+            ledHandler.setGreen(1);
             Serial.println("Reconnected to WiFi successfully!");
         }
     }
-    if (localMode != "hotspot" && wirelessComm.isConnected() && !wsClient.isConnected() && (millis() - lastWsReconnectAttempt > RECONNECT_INTERVAL_MS)) {
+    if (localMode == "wifi" && wirelessComm.isConnected() && !wsClient.isConnected() && (millis() - lastWsReconnectAttempt > RECONNECT_INTERVAL_MS)) {
         Serial.println("WebSocket lost or not connected. Re-attempting WebSocket connection...");
+        ledHandler.setGreen(1);
         wsClient.connect(WS_SERVER_IP, WS_SERVER_PORT, WS_SERVER_PATH);
         lastWsReconnectAttempt = millis();
         if (wsClient.isConnected()) {
-            ledHandler.setBlue();
+            ledHandler.setBlue(1);
             Serial.println("Reconnected to WebSocket successfully!");
         } else {
-            ledHandler.setGreen();
+            ledHandler.setBlue(0);
             Serial.println("Failed to reconnect to WebSocket.");
         }
     }
-    delay(1000);
+    delay(100);
 }

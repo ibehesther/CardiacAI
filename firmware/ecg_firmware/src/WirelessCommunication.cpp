@@ -116,14 +116,14 @@ void WirelessCommunication::activateHotspotMode(const char *ssid_ap, const char 
     } else {
         result = WiFi.softAP(ssid_ap); // Open access point if no password or too short
     }
+    setMode("hotspot"); // Update the stored mode to "hotspot"
+    mode = "hotspot"; // Update the in-memory mode variable
 
     // Report hotspot activation status
     if (result) {
         Serial.println("Hotspot activated");
         Serial.print("Hotspot IP: ");
         Serial.println(WiFi.softAPIP());
-        setMode("hotspot"); // Update the stored mode to "hotspot"
-        mode = "hotspot"; // Update the in-memory mode variable
     } else {
         Serial.println("Failed to start hotspot");
     }

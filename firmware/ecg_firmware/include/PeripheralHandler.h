@@ -60,22 +60,24 @@ public:
     /**
      * @brief Sets the RGB LED to blue, indicating WebSocket connection.
      */
-    void setBlue();
+    void setBlue(int bState);
 
     /**
      * @brief Sets the RGB LED to green, indicating WiFi client mode but no WebSocket connection.
      */
-    void setGreen();
+    void setGreen(int gState);
 
     /**
      * @brief Sets the RGB LED to red, indicating Hotspot mode.
      */
-    void setRed(); // This will serve as the "third color"
+    void setRed(int rState); // This will serve as the "third color"
 
     /**
      * @brief Turns off all segments of the RGB LED.
      */
     void turnOff();
+
+    void toggleGreenSixTimes(unsigned long delayTime);
 
     /**
      * @brief Checks for button clicks and returns the number of clicks detected.

@@ -32,18 +32,18 @@ void PeripheralHandler::begin() {
     Serial.println("[PeripheralHandler] Initialized LED and Button.");
 }
 
-void PeripheralHandler::setBlue() {
-    _setColor(LOW, LOW, HIGH);
+void PeripheralHandler::setBlue(int bState) {
+    digitalWrite(_bluePin, bState);
     // Serial.println("[LED] Set to Blue (WiFi Connected, WS Connected)");
 }
 
-void PeripheralHandler::setGreen() {
-    _setColor(LOW, HIGH, LOW);
+void PeripheralHandler::setGreen(int gState) {
+    digitalWrite(_greenPin, gState);
     // Serial.println("[LED] Set to Green (WiFi Connected, WS Disconnected)");
 }
 
-void PeripheralHandler::setRed() {
-    _setColor(HIGH, LOW, LOW);
+void PeripheralHandler::setRed(int rState) {
+    digitalWrite(_redPin, rState);
     // Serial.println("[LED] Set to Red (Hotspot Mode)");
 }
 
@@ -51,6 +51,19 @@ void PeripheralHandler::turnOff() {
     _setColor(LOW, LOW, LOW);
     // Serial.println("[LED] Turned Off");
 }
+
+void PeripheralHandler::toggleGreenSixTimes(unsigned long delayTime = 300) {
+  bool originalState = digitalRead(_greenPin);
+
+  for (int i = 0; i < 6; i++) {
+    digitalWrite(_greenPin, !digitalRead(_greenPin));
+    delay(delayTime);
+  }
+
+  // Ensure the pin returns to its original state
+  digitalWrite(_greenPin, originalState);
+}
+
 
 // Helper function to set individual LED states
 void PeripheralHandler::_setColor(int rState, int gState, int bState) {

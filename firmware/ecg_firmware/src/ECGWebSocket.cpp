@@ -77,10 +77,10 @@ void ECGWebSocketClient::onWsEvent(WebsocketsEvent event, String data) {
             Serial.println("[WS] Connnection Closed");
             break;
         case WebsocketsEvent::GotPing:
-            Serial.println("[WS] Got a Ping!");
+            // Serial.println("[WS]  Ping!");
             break;
         case WebsocketsEvent::GotPong:
-            Serial.println("[WS] Got a Pong!");
+            // Serial.println("[WS] Got a Pong!");
             break;
         default:
             break;
