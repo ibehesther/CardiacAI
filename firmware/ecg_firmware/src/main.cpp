@@ -22,7 +22,7 @@ const char* WS_SERVER_IP = "api.cardiacai.tech";
 const uint16_t WS_SERVER_PORT = 8000;
 const char* WS_SERVER_PATH = "/api/ws/device?device_id=cardiacai-123";
 
-const char *domainName = "cardiacai.local"
+const char *domainName = "cardiacai.local";
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
 
@@ -45,7 +45,7 @@ HotspotWebServer hotspotServer(wirelessComm);
 
 
 bool startDNS() {
-    dnsServer.start(DNS_PORT, "*", WirelessCommunication.getIP());
+    dnsServer.start(DNS_PORT, "*", wirelessComm.getIP());
     Serial.println("DNS server started. Redirecting all requests to " + String(domainName));
     return true;
 }

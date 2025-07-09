@@ -188,5 +188,5 @@ void WirelessCommunication::setMode(const char *mode) {
 }
 
 IPAddress WirelessCommunication::getIP() {
-    return(WiFi.localIP());
+    return(WiFi.softAPIP());
 }
