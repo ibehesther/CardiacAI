@@ -25,10 +25,6 @@ void HotspotWebServer::begin()
             <head>
                 <title>CardiacAI Hotspot Setup</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link
-                    rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-                />
                 <style>
                     body {
                         font-family: Arial, sans-serif;
@@ -69,13 +65,17 @@ void HotspotWebServer::begin()
                     .password-focus {
                         border: 2px solid #007bff;
                     }
+
+                    .password-text {
+                        display: inline-block;
+                    }
                     .hidden {
                         display: none;
                     }
                     #password {
                         border: 0;
                         padding: 10px;
-                        width: 85%;
+                        width: 80%;
                         height: 100%;
                     }
                     #password:focus-visible {
@@ -135,11 +135,9 @@ void HotspotWebServer::begin()
                         /><br />
                         <label for="password">WiFi Password:</label>
                         <div class="password-container" tabindex="0">
-                            <input type="password" id="password" name="password" required /><i
-                                id="show-password"
-                                class="fa fa-eye icon"
-                            ></i>
-                            <i id="hide-password" class="fa fa-eye-slash icon hidden"></i>
+                            <input type="password" id="password" name="password" required />
+                            <p id="show-password" class="password-text">Show</p>
+                            <p id="hide-password" class="password-text hidden">Hide</p>
                         </div>
                         <br />
                         <button type="submit">Save & Connect</button>
@@ -258,7 +256,6 @@ void HotspotWebServer::begin()
                 </script>
             </body>
         </html>
-
         )rawliteral"); // R"rawliteral(...)rawliteral" allows multi-line string without escaping
                });
 
