@@ -186,3 +186,7 @@ void WirelessCommunication::setMode(const char *mode) {
     prefs.putString("mode", mode);
     prefs.end();
 }
+
+IPAddress WirelessCommunication::getIP() {
+    return(WiFi.localIP());
+}
