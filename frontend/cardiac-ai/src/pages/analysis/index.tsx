@@ -34,7 +34,7 @@ Chart.register(
 );
 
 const Analysis = () => {
-	const { deviceMetadata } = useAuth();
+	const { deviceMetadata, userRole } = useAuth();
 	const theme = useTheme();
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const chartRef = useRef<Chart | null>(null);
@@ -45,6 +45,7 @@ const Analysis = () => {
 
 	const [logMessage, setLogMessage] = React.useState<string>("");
 	const [saveReadings, setSaveReadings] = React.useState<boolean>(false);
+	const [ecgChart, setECGChart] = React.useState<Chart<"line", number[], any> | null>(null)
 
 	const canvasWidth = isMobile
 		? 320
@@ -58,8 +59,9 @@ const Analysis = () => {
 
 	const deviceId = deviceMetadata?.device_id;
 	const socket = new WebSocket(
-		`ws://localhost:8000/api/ws/frontend?device_id=${deviceId}`
+		`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`
 	);
+	const isAdmin = userRole === "admin";
 
 	const MAX_POINTS = 40;
 
@@ -87,7 +89,7 @@ const Analysis = () => {
 			chartRef.current.destroy();
 		}
 
-		const ecgChart = new Chart(ctx, {
+		const chart = new Chart(ctx, {
 			type: "line",
 			data: {
 				labels: Array(MAX_POINTS).fill(""),
@@ -116,8 +118,9 @@ const Analysis = () => {
 				},
 			},
 		});
+		setECGChart(chart)
 
-		chartRef.current = ecgChart;
+		chartRef.current = chart;
 		return () => {
 			if (chartRef.current) {
 				chartRef.current.destroy();
@@ -126,8 +129,45 @@ const Analysis = () => {
 		};
 	}, []);
 
+	// let ctx: CanvasRenderingContext2D | null = null;
+	// if (canvasRef.current) {
+	// 	ctx = canvasRef.current.getContext("2d");
+	// }
+
+	// const ecgChart = ctx
+	// 	? new Chart(ctx, {
+	// 			type: "line",
+	// 			data: {
+	// 				labels: Array(MAX_POINTS).fill(""),
+	// 				datasets: [
+	// 					{
+	// 						label: "ECG Signal",
+	// 						borderColor: "red",
+	// 						backgroundColor: "rgba(255,0,0,0.1)",
+	// 						data: [],
+	// 						pointRadius: 0,
+	// 						borderWidth: 2,
+	// 						tension: 0.3,
+	// 					},
+	// 				],
+	// 			},
+	// 			options: {
+	// 				animation: false,
+	// 				responsive: true,
+	// 				scales: {
+	// 					x: { display: false },
+	// 					y: {
+	// 						min: -1,
+	// 						max: 1,
+	// 						title: { display: true, text: "Amplitude" },
+	// 					},
+	// 				},
+	// 			},
+	// 	  })
+	// 	: null;
+
 	socket.onopen = () => {
-		setLogMessage("Connected to backend");
+		setLogMessage("Connected to backend\n");
 	};
 
 	socket.onmessage = (event) => {
@@ -135,14 +175,21 @@ const Analysis = () => {
 		const ecgPoint = parseFloat(rawValue);
 
 		if (!isNaN(ecgPoint)) {
-			if (chartRef.current) {
-				const dataSet = chartRef.current.data.datasets[0].data as number[];
-				dataSet.push(ecgPoint);
-				if (dataSet.length > MAX_POINTS) {
-					dataSet.shift();
-				}
-				chartRef.current.update("none");
+			// if (chartRef.current) {
+			// 	const dataSet = chartRef.current.data.datasets[0].data as number[];
+			// 	dataSet.push(ecgPoint);
+			// 	if (dataSet.length > MAX_POINTS) {
+			// 		dataSet.shift();
+			// 	}
+			// 	chartRef.current.update("none");
+			// }
+			console.log("Received ECG point:", ecgPoint);
+			const dataSet = ecgChart?.data.datasets[0].data as number[] || [];
+			dataSet.push(ecgPoint);
+			if (dataSet.length > MAX_POINTS) {
+				dataSet.shift();
 			}
+			ecgChart?.update("none");
 		} else {
 			console.warn("Invalid ECG data:", rawValue);
 		}
@@ -151,6 +198,8 @@ const Analysis = () => {
 	socket.onclose = () => {
 		setLogMessage("Connection closed");
 	};
+
+	console.log("userRole: ", userRole);
 	return (
 		<Box
 			sx={{
@@ -171,7 +220,7 @@ const Analysis = () => {
 					height: "calc(100% - 6rem)",
 					display: "flex",
 					flexDirection: "column",
-					padding: "3rem",
+					padding: { xs: "3rem 1.5rem", md: "3rem" },
 					borderRadius: "1rem",
 				}}
 			>
@@ -183,23 +232,32 @@ const Analysis = () => {
 						alignItems: "center",
 					}}
 				>
-					<FormControlLabel
-						control={
-							<Switch
-								checked={saveReadings}
-								sx={{ zIndex: 1 }}
-								onClick={() => setSaveReadings((prev) => !prev)}
-							/>
-						}
-						label="Save Data"
-					/>
-					<Typography>Device ID: <b>{deviceId}</b></Typography>
-					<Typography>Session: <b>01:23</b></Typography>
+					{isAdmin ? (
+						<FormControlLabel
+							control={
+								<Switch
+									checked={saveReadings}
+									sx={{ zIndex: 1 }}
+									onClick={() => setSaveReadings((prev) => !prev)}
+								/>
+							}
+							label="Save Data"
+						/>
+					) : (
+						""
+					)}
+
+					<Typography>
+						Device ID: <b>{deviceId}</b>
+					</Typography>
+					<Typography>
+						Session: <b>01:23</b>
+					</Typography>
 					<Typography>1000 data points: 39 KB</Typography>
 				</Box>
 				<Box sx={{ width: "100%", margin: "1rem 0" }}>
 					<canvas
-						id="analysisCanvas"
+						id="ecgChart"
 						ref={canvasRef}
 						width={canvasWidth}
 						height={canvasHeight}
@@ -211,64 +269,69 @@ const Analysis = () => {
 					/>
 					<pre id="log">{logMessage}</pre>
 				</Box>
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: { xs: "column", sm: "row" },
-						justifyContent: "space-evenly",
-						padding: "1.5rem",
-						gap: "1rem",
-					}}
-				>
-					<Button
-						variant="outlined"
+				{isAdmin ? (
+					<Box
 						sx={{
-							border: "1px solid rgba(47, 90, 196, 1)",
-							padding: "1rem 2rem",
-							background: "#fff",
-							borderRadius: "1rem",
-							":hover": {
-								border: "2px solid rgba(47, 90, 196, 1)",
-								background: "rgba(47, 90, 196, 1)",
-								color: "#fff",
-							},
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							justifyContent: "space-evenly",
+							padding: "1.5rem",
+							gap: "1rem",
 						}}
 					>
-						Download Previous
-					</Button>
-					<Button
-						variant="outlined"
-						sx={{
-							border: "1px solid rgba(47, 90, 196, 1)",
-							padding: "1rem 2rem",
-							background: "#fff",
-							borderRadius: "1rem",
-							":hover": {
-								border: "2px solid rgba(47, 90, 196, 1)",
-								background: "rgba(47, 90, 196, 1)",
-								color: "#fff",
-							},
-						}}
-					>
-						Download Current
-					</Button>
-					<Button
-						variant="outlined"
-						sx={{
-							border: "1px solid rgba(47, 90, 196, 1)",
-							padding: "1rem 2rem",
-							background: "#fff",
-							borderRadius: "1rem",
-							":hover": {
-								border: "2px solid rgba(47, 90, 196, 1)",
-								background: "rgba(47, 90, 196, 1)",
-								color: "#fff",
-							},
-						}}
-					>
-						Request AI Analysis
-					</Button>
-				</Box>
+						<Button
+							variant="outlined"
+							sx={{
+								border: "1px solid rgba(47, 90, 196, 1)",
+								padding: "1rem 2rem",
+								background: "#fff",
+								borderRadius: "1rem",
+								":hover": {
+									border: "2px solid rgba(47, 90, 196, 1)",
+									background: "rgba(47, 90, 196, 1)",
+									color: "#fff",
+								},
+							}}
+						>
+							Download Previous
+						</Button>
+						<Button
+							variant="outlined"
+							sx={{
+								border: "1px solid rgba(47, 90, 196, 1)",
+								padding: "1rem 2rem",
+								background: "#fff",
+								borderRadius: "1rem",
+								":hover": {
+									border: "2px solid rgba(47, 90, 196, 1)",
+									background: "rgba(47, 90, 196, 1)",
+									color: "#fff",
+								},
+							}}
+						>
+							Download Current
+						</Button>
+						<Button
+							variant="outlined"
+							sx={{
+								border: "1px solid rgba(47, 90, 196, 1)",
+								padding: "1rem 2rem",
+								background: "#fff",
+								borderRadius: "1rem",
+								":hover": {
+									border: "2px solid rgba(47, 90, 196, 1)",
+									background: "rgba(47, 90, 196, 1)",
+									color: "#fff",
+								},
+							}}
+						>
+							Request AI Analysis
+						</Button>
+					</Box>
+				) : (
+					""
+				)}
+
 				<Box sx={{ padding: { xs: "0", sm: "1.5rem" } }}>
 					<TextField
 						placeholder="AI Analysis will be displayed here..."
