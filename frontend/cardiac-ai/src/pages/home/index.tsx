@@ -4,16 +4,17 @@ import { useAuth } from "../../context/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
 const Home = () => {
-	const {isAuthenticated} = useAuth();
-	const navigate = useNavigate()
+	const { isAuthenticated } = useAuth();
+	const navigate = useNavigate();
 	return (
-		<Box sx={{padding: '3rem 0'}}>
+		<Box sx={{ padding: "3rem 0" }}>
 			<Box
 				sx={{
 					display: "flex",
 					flexDirection: "row",
 					gap: "1rem",
-					padding: "2rem 3rem 0",
+					padding: { xs: "2rem 1.5rem 0", md: "2rem 3rem 0" },
+
 					alignItems: "center",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
@@ -21,10 +22,10 @@ const Home = () => {
 				<Box sx={{ textAlign: "left", flex: { xs: 1 } }}>
 					<Typography
 						sx={{
-							fontSize: { xs: "1.875rem", sm: '3rem', md: "4rem" },
+							fontSize: { xs: "1.875rem", sm: "3rem", md: "4rem" },
 							fontWeight: 900,
 							color: "rgba(18, 56, 144, 1)",
-							lineHeight: { xs: "2rem", sm: '3rem', md: "4.5rem" },
+							lineHeight: { xs: "2rem", sm: "3rem", md: "4.5rem" },
 						}}
 					>
 						Monitor Your Heart, Anywhere Anytime
@@ -41,7 +42,7 @@ const Home = () => {
 						}}
 						onClick={() => {
 							if (isAuthenticated) {
-								navigate('/analysis')
+								navigate("/analysis");
 							} else {
 								navigate("/login");
 							}
@@ -61,7 +62,7 @@ const Home = () => {
 			<Box
 				sx={{
 					width: "100%",
-					height: {xs: "5rem", sm: '8rem'},
+					height: { xs: "5rem", sm: "8rem" },
 					borderRadius: "0 0 50% 50%",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
