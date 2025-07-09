@@ -161,7 +161,7 @@ void loop() {
         ledHandler.setBlue(0);
         ledHandler.toggleGreenSixTimes(300); // Blink green LED 6 times
         if (!hotspotServerActive) {
-            // hotspotServer.begin();
+            hotspotServer.begin();
             hotspotServerActive = true;
             // startDNS();
         }
