@@ -118,6 +118,7 @@ void loop() {
         Serial.println("WiFi switch requested by web interface. Attempting to connect to new WiFi...");
         hotspotServer.resetWifiSwitchRequest();
         if (hotspotServerActive) {
+            stopDNS();
             hotspotServer.end();
             hotspotServerActive = false;
         }
@@ -140,6 +141,7 @@ void loop() {
     if (clicks == 1) { // Single click: Attempt to switch to WiFi Station mode and connect to WebSocket
         Serial.println("Single click detected! Attempting to activate WiFi mode...");
         if (hotspotServerActive) {
+            stopDNS();
             hotspotServer.end();
             hotspotServerActive = false;
         }
@@ -169,6 +171,7 @@ void loop() {
         if (!hotspotServerActive) {
             hotspotServer.begin();
             hotspotServerActive = true;
+            startDNS();
         }
     }
 
@@ -184,6 +187,7 @@ void loop() {
         wsClient.sendECGValue(ecgValue);
     }
         else {
+        dnsServer.processNextRequest();
         ledHandler.toggleGreenSixTimes(300); // Blink green LED 6 times if WiFi is not connected
     }
 
