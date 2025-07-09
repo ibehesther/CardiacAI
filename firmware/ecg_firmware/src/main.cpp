@@ -3,7 +3,7 @@
 #include "ECGWebSocket.h"   
 #include "PeripheralHandler.h"    
 #include "HotspotWebServer.h"    
-
+#include <DNSServer.h>
 
 // AD8232 ECG Sensor Pins
 const int ECG_OUTPUT_PIN = 32;
@@ -22,8 +22,11 @@ const char* WS_SERVER_IP = "api.cardiacai.tech";
 const uint16_t WS_SERVER_PORT = 8000;
 const char* WS_SERVER_PATH = "/api/ws/device?device_id=cardiacai-123";
 
-// --- HotSpot AP Details ---
-const char* HOTSPOT_SSID = "ECG_Hotspot_AP";
+const char *domainName = "cardiacai.local"
+const byte DNS_PORT = 53;
+DNSServer dnsServer;
+
+const char* HOTSPOT_SSID = "CardiacAI";
 const char* HOTSPOT_PASSWORD = "ecg12345";
 
 // Attempt reconnect every 10 seconds
@@ -40,6 +43,18 @@ ECGWebSocketClient wsClient;
 PeripheralHandler ledHandler(RGB_RED_PIN, RGB_GREEN_PIN, RGB_BLUE_PIN, BUTTON_PIN);
 HotspotWebServer hotspotServer(wirelessComm);
 
+
+bool startDNS() {
+    dnsServer.start(DNS_PORT, "*", WirelessCommunication.getIP());
+    Serial.println("DNS server started. Redirecting all requests to " + String(domainName));
+    return true;
+}
+
+bool stopDNS() {
+    dnsServer.stop();
+    Serial.println("DNS server stopped.");
+    return true;
+}
 
 void setup() {
     Serial.begin(115200);
@@ -103,6 +118,7 @@ void loop() {
         Serial.println("WiFi switch requested by web interface. Attempting to connect to new WiFi...");
         hotspotServer.resetWifiSwitchRequest();
         if (hotspotServerActive) {
+            stopDNS();
             hotspotServer.end();
             hotspotServerActive = false;
         }
@@ -125,6 +141,7 @@ void loop() {
     if (clicks == 1) { // Single click: Attempt to switch to WiFi Station mode and connect to WebSocket
         Serial.println("Single click detected! Attempting to activate WiFi mode...");
         if (hotspotServerActive) {
+            stopDNS();
             hotspotServer.end();
             hotspotServerActive = false;
         }
@@ -154,6 +171,7 @@ void loop() {
         if (!hotspotServerActive) {
             hotspotServer.begin();
             hotspotServerActive = true;
+            startDNS();
         }
     }
 
@@ -169,6 +187,7 @@ void loop() {
         wsClient.sendECGValue(ecgValue);
     }
         else {
+        dnsServer.processNextRequest();
         ledHandler.toggleGreenSixTimes(300); // Blink green LED 6 times if WiFi is not connected
     }
 

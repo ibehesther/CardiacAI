@@ -90,6 +90,8 @@ public:
 
     String getLocalMode();
 
+    IPAddress getIP();
+
 private:
     Preferences prefs; // Instance of the Preferences library for NVS access
     String ssid;       // Stored WiFi SSID
