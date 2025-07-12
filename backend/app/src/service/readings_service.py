@@ -8,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from fastapi import WebSocket, WebSocketDisconnect
 from app.src.models.reading import ECGReading
 
+MAX_NUM_OF_FRONTEND_CONNECTIONS = 30
+
 # Track active WebSocket connections
 device_connections: Dict[str, WebSocket] = {}          # device_id: device websocket
 frontend_connections: Dict[str, List[WebSocket]] = {}  # device_id: list of frontend websockets
@@ -36,13 +38,13 @@ async def toggle_reading_store_service(device_id: str, enable: bool):
         session_id = str(uuid4())
         current_sessions[device_id] = session_id
         reading_buffers[device_id] = []
-        return {"device_id": device_id, "store_enabled": True, "session_id": session_id}
+        return {"device_id": device_id, "save_status": True, "session_id": session_id}
     else:
         # Clear session
         current_sessions.pop(device_id, None)
         reading_buffers.pop(device_id, None)
         session_docs.pop(device_id, None)
-        return {"device_id": device_id, "store_enabled": False}
+        return {"device_id": device_id, "save_status": False}
 
 async def download_ecg_service(session_id: str):
     """
@@ -64,6 +66,17 @@ async def get_device_metadata_service(device_id: str) -> List[ECGReading]:
     Fetches all metadata for a given device ID from the database.
     """
     metadata_list = await ReadingRepository.get_all_metadata(device_id)
+
+    # Current states
+    if device_id in store_reading_flags:
+        store_enabled = store_reading_flags[device_id]
+    else:
+        store_enabled = False
+
+    # Add current session state
+    if metadata_list:
+        metadata_list[-1].save_status = store_enabled
+    
     return metadata_list
 
 
@@ -157,14 +170,18 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
 
     # Check if the device is currently connected via device_ws
     if device_id not in device_connections:
-        print(f"Frontend WebSocket connection denied: Device {device_id} not active.")
-        await websocket.close(code=1011) # Internal Error (or a custom close code if you define one for 'device not active')
-        return
+        print(f"Device {device_id} not active. Please connect the device to get readings.")
+        # await websocket.close(code=1011) # Internal Error
 
     if device_id not in frontend_connections:
         frontend_connections[device_id] = []
     frontend_connections[device_id].append(websocket)
-    print(f"Frontend connected to device {device_id}. Total frontend connections for device: {len(frontend_connections[device_id])}")
+
+    if len(frontend_connections[device_id]) > MAX_NUM_OF_FRONTEND_CONNECTIONS:
+        # remove the oldest 80% of connections
+        num_to_remove = int(len(frontend_connections[device_id]) * 0.8)
+        frontend_connections[device_id] = frontend_connections[device_id][num_to_remove:]
+        print(f"Remaining frontend connections for device {device_id}: {len(frontend_connections.get(device_id, []))}")
 
     try:
         while True:
@@ -172,11 +189,10 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
             print(f"Received message from frontend for device {device_id}: {message}")
     except WebSocketDisconnect:
         print(f"Frontend disconnected from device {device_id}.")
-        if device_id in frontend_connections and websocket in frontend_connections[device_id]:
-            frontend_connections[device_id].remove(websocket)
-            if not frontend_connections[device_id]:
-                frontend_connections.pop(device_id)
-        print(f"Remaining frontend connections for device {device_id}: {len(frontend_connections.get(device_id, []))}")
+        # if device_id in frontend_connections and websocket in frontend_connections[device_id]:
+        #     frontend_connections[device_id].remove(websocket)
+        #     if not frontend_connections[device_id]:
+        #         frontend_connections.pop(device_id)
     except Exception as e:
         print(f"Error in frontend WebSocket for device {device_id}: {e}")
         await websocket.close(code=1011)
