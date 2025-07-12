@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from fastapi import WebSocket, WebSocketDisconnect
 from app.src.models.reading import ECGReading
 
-MAX_NUM_OF_FRONTEND_CONNECTIONS = 30
+MAX_NUM_OF_FRONTEND_CONNECTIONS = 12
 
 # Track active WebSocket connections
 device_connections: Dict[str, WebSocket] = {}          # device_id: device websocket
@@ -21,7 +21,7 @@ session_docs = {}  # device_id -> inserted document _id
 store_reading_flags = {}      # device_id -> bool
 current_sessions = {}         # device_id -> session_id
 reading_buffers = {}          # device_id -> List[float]
-BUFFER_SIZE = 100
+BUFFER_SIZE = 5
 
 async def toggle_reading_store_service(device_id: str, enable: bool):
     """
@@ -92,6 +92,7 @@ async def handle_device_websocket_service(websocket: WebSocket):
         return
 
     device_connections[device_id] = websocket
+
     print(f"Device {device_id} connected.")
 
     try:
@@ -167,7 +168,9 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
         print("Frontend WebSocket connection denied: Missing device_id.")
         await websocket.close(code=1008) # Policy Violation
         return
-
+    
+  
+    
     # Check if the device is currently connected via device_ws
     if device_id not in device_connections:
         print(f"Device {device_id} not active. Please connect the device to get readings.")
@@ -177,10 +180,11 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
         frontend_connections[device_id] = []
     frontend_connections[device_id].append(websocket)
 
+    print(frontend_connections)
     if len(frontend_connections[device_id]) > MAX_NUM_OF_FRONTEND_CONNECTIONS:
         # remove the oldest 80% of connections
         num_to_remove = int(len(frontend_connections[device_id]) * 0.8)
-        frontend_connections[device_id] = frontend_connections[device_id][num_to_remove:]
+        del frontend_connections[device_id][0:num_to_remove]
         print(f"Remaining frontend connections for device {device_id}: {len(frontend_connections.get(device_id, []))}")
 
     try:

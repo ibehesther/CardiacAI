@@ -22,9 +22,9 @@
   <pre id="log"></pre>
 
   <script>
-    const deviceId = "cardiacai-123";
-    // const deviceId = "Online"
-    const socket = new WebSocket(`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`);
+    // const deviceId = "cardiacai-123";
+    const deviceId = "Online"
+    const socket = new WebSocket(`ws://localhost:8000/api/ws/frontend?device_id=${deviceId}`);
     const log = document.getElementById("log");
 
     const ctx = document.getElementById('ecgChart').getContext('2d');
