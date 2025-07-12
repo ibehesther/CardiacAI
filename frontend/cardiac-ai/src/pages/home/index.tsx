@@ -1,15 +1,20 @@
 import React from "react";
 import { Box, Button, Typography } from "@mui/material";
+import { useAuth } from "../../context/AuthProvider";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+	const { isAuthenticated } = useAuth();
+	const navigate = useNavigate();
 	return (
-		<Box sx={{padding: '3rem 0'}}>
+		<Box sx={{ padding: "3rem 0" }}>
 			<Box
 				sx={{
 					display: "flex",
 					flexDirection: "row",
 					gap: "1rem",
-					padding: "2rem 2rem 0",
+					padding: { xs: "2rem 1.5rem 0", md: "2rem 3rem 0" },
+
 					alignItems: "center",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
@@ -17,10 +22,10 @@ const Home = () => {
 				<Box sx={{ textAlign: "left", flex: { xs: 1 } }}>
 					<Typography
 						sx={{
-							fontSize: { xs: "1.5rem", sm: '3rem', md: "4rem" },
+							fontSize: { xs: "1.875rem", sm: "3rem", md: "4rem" },
 							fontWeight: 900,
 							color: "rgba(18, 56, 144, 1)",
-							lineHeight: { xs: "2rem", sm: '3rem', md: "4.5rem" },
+							lineHeight: { xs: "2rem", sm: "3rem", md: "4.5rem" },
 						}}
 					>
 						Monitor Your Heart, Anywhere Anytime
@@ -34,6 +39,13 @@ const Home = () => {
 							borderRadius: "1rem",
 							fontWeight: 600,
 							fontSize: { xs: "0.875rem", sm: "1.25rem" },
+						}}
+						onClick={() => {
+							if (isAuthenticated) {
+								navigate("/analysis");
+							} else {
+								navigate("/login");
+							}
 						}}
 					>
 						Get Started
@@ -50,7 +62,7 @@ const Home = () => {
 			<Box
 				sx={{
 					width: "100%",
-					height: {xs: "5rem", sm: '8rem'},
+					height: { xs: "5rem", sm: "8rem" },
 					borderRadius: "0 0 50% 50%",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
@@ -66,7 +78,7 @@ const Home = () => {
 				}}
 			>
 				<Box>
-					<img src={"/images/piechart.png"} alt="Piechart" width={"80%"} />
+					<img src={"/images/piechart.png"} alt="Piechart" width={"70%"} />
 					<Typography
 						sx={{
 							fontSize: { xs: "0.875rem", sm: "1.25rem" },
@@ -80,7 +92,7 @@ const Home = () => {
 					<img
 						src={"/images/heart-rate-pulse.png"}
 						alt="Heart rate pulse"
-						width={"80%"}
+						width={"70%"}
 					/>
 					<Typography
 						sx={{
@@ -92,7 +104,7 @@ const Home = () => {
 					</Typography>
 				</Box>
 				<Box>
-					<img src={"/images/download.png"} alt="Downlaod" width={"80%"} />
+					<img src={"/images/download.png"} alt="Downlaod" width={"70%"} />
 					<Typography
 						sx={{
 							fontSize: { xs: "0.875rem", sm: "1.25rem" },

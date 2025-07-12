@@ -87,6 +87,8 @@ async def get_metadata_for_device(device_id: str, token: str = Depends(oauth2_sc
 
     The metadata includes pointers to all ECG readings saved for the device.
     In these json readings, you can extract the `session_id` and `timestamp` to download the ECG data.
+
+    The last item on the list has a save_status field that indicates whether the device is currently storing readings or not.
     Args:
         device_id (str): The unique identifier for the device.
     Returns:

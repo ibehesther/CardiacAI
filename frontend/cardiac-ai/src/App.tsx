@@ -1,10 +1,9 @@
 import React from "react";
 import "./App.css";
 import Header from "./components/header";
-import Home from "./pages/home";
-import Layout from "./layout";
 import { Route, Routes } from "react-router-dom";
-import { routes } from "./routes/baseRoutes";
+import {routes } from "./routes/baseRoutes";
+import { useAuth } from "./context/AuthProvider";
 
 function App() {
 	return (
@@ -14,7 +13,7 @@ function App() {
 				{routes.map((route, index) => (
 					<Route key={index} path={route.path} element={route.element} />
 				))}
-			</Routes>
+=			</Routes>
 		</div>
 	);
 }

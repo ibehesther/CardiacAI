@@ -3,13 +3,14 @@ import React from "react";
 
 const About = () => {
 	return (
-		<Box sx={{padding: '3rem 0'}}>
+		<Box sx={{ padding: "3rem 0" }}>
 			<Box
 				sx={{
 					display: "flex",
 					flexDirection: "row",
 					gap: "1rem",
-					padding: "2rem 2rem 0",
+					padding: { xs: "2rem 1.5rem 0", md: "2rem 3rem 0" },
+
 					alignItems: "center",
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
@@ -52,7 +53,12 @@ const About = () => {
 					backgroundColor: "rgba(249, 250, 255, 1)",
 				}}
 			/>
-			<Box sx={{ textAlign: "left", padding: "5rem 2rem" }}>
+			<Box
+				sx={{
+					textAlign: "left",
+					padding: { xs: "5rem 1.5rem", md: "5rem 3rem" },
+				}}
+			>
 				<Typography
 					sx={{
 						fontSize: { xs: "1.875rem", sm: "3rem", md: "3.5rem" },
@@ -75,7 +81,12 @@ const About = () => {
 					download ECG data directly.
 				</Typography>
 			</Box>
-			<Box sx={{ textAlign: "left", padding: "2rem" }}>
+			<Box
+				sx={{
+					textAlign: "left",
+					padding: { xs: "2rem 1.5rem", md: "2rem 3rem" },
+				}}
+			>
 				<Typography
 					sx={{
 						fontSize: { xs: "1.875rem", sm: "3rem", md: "3.5rem" },
@@ -101,7 +112,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
@@ -119,7 +130,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
@@ -137,7 +148,7 @@ const About = () => {
 							<img
 								src={"/images/heart-rate-pulse.png"}
 								alt="Heart rate pulse"
-								width={"80%"}
+								width={"70%"}
 							/>
 						</Box>
 						<Typography
