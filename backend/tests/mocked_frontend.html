@@ -22,8 +22,8 @@
   <pre id="log"></pre>
 
   <script>
-    // const deviceId = "cardiacai-123";
-    const deviceId = "Online"
+    const deviceId = "cardiacai-123";
+    // const deviceId = "Online"
     const socket = new WebSocket(`ws://localhost:8000/api/ws/frontend?device_id=${deviceId}`);
     const log = document.getElementById("log");
 
