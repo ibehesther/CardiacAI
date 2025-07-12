@@ -3,7 +3,7 @@ import websockets
 import math
 import time
 
-DEVICE_ID = "victory"  # Use any unique ID
+DEVICE_ID = "Online"  # Use any unique ID
 
 async def send_data():
     uri = f"ws://localhost:8000/api/ws/device?device_id={DEVICE_ID}"
