@@ -265,7 +265,7 @@ const Analysis = () => {
 					<Typography>
 						Session: <b>{formatElapsedTime(session)}</b>
 					</Typography>
-					<Typography>1000 data points: 39 KB</Typography>
+					{/* <Typography>1000 data points: 39 KB</Typography> */}
 				</Box>
 				<Box sx={{ width: "100%", margin: "1rem 0" }}>
 					<canvas
