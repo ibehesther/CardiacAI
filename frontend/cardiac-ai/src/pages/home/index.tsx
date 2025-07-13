@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 const Home = () => {
 	const { isAuthenticated } = useAuth();
 	const navigate = useNavigate();
+
 	return (
 		<Box sx={{ padding: "3rem 0" }}>
 			<Box

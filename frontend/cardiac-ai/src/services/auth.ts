@@ -8,33 +8,37 @@ export const loginUser = async (username: string, password: string) => {
 		{
 			username,
 			password,
-      grant_type: "password",
-      scope: "",
-      client_id: '',
-      client_secret: '',
+			grant_type: "password",
+			scope: "",
+			client_id: "",
+			client_secret: "",
 		},
 		{
 			headers: {
 				"Content-Type": "application/x-www-form-urlencoded",
-				"Access-Control-Allow-Origin": '*',
+				"Access-Control-Allow-Origin": "*",
 			},
 		}
 	);
 
-  return response.data
+	return response.data;
 };
 
 export const getDeviceMetadata = async (deviceId: string, token: string) => {
-  const response = await axios.get(
-    `${REACT_APP_API_URL}/api/devices/metadata/${deviceId}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": '*',
-        'Authorization': `Bearer ${token}`,
-      },
-    }
-  );
+	const response = await axios.get(
+		`${REACT_APP_API_URL}/api/devices/metadata/${deviceId}`,
+		{
+			headers: {
+				"Content-Type": "application/json",
+				"Access-Control-Allow-Origin": "*",
+				Authorization: `Bearer ${token}`,
+			},
+		}
+	);
 
-  return response.data;
-}
+  console.log("Token Used: ", token);
+
+  console.log("Device metadata response: ", response.data);
+
+	return response.data;
+};

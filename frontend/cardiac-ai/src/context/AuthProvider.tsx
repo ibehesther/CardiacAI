@@ -34,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 		}
 		try {
 			const deviceMetadata = await getDeviceMetadata(deviceId, token);
-			console.log("deviceMetadata: ", deviceMetadata);
 			if (
 				!deviceMetadata[0] ||
 				!deviceMetadata[0].device_id ||
@@ -43,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				setIsAuthenticated(false);
 				return;
 			} else {
-				setDeviceMetadata(deviceMetadata[0]);
+				setDeviceMetadata(deviceMetadata[deviceMetadata.length - 1]);
 				setUserRole(role || "user");
 				setIsAuthenticated(true);
 				return;
@@ -66,7 +65,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			setIsAuthenticated(true);
 			setUserRole(response.role || "user");
 
-			console.log("response: ", response);
 		} catch (error) {
 			console.error("Login failed:", error);
 			throw new Error("Login failed. Please check your credentials.");
@@ -96,3 +94,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 export const useAuth = () => useContext(AuthContext)!;
+
+
+
+// {
+//     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiJjYXJkaWFjYWktMTIzIiwiZXhwIjoxNzUyMzQyOTg2LCJyb2xlIjoiYWRtaW4ifQ.OQ-T9xAcAuqey61vaKwu6nzRLE_8uPzHYTOCUX-DJHk",
+// 		 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiJjYXJkaWFjYWktMTIzIiwiZXhwIjoxNzUyMzQyOTg2LCJyb2xlIjoiYWRtaW4ifQ.OQ-T9xAcAuqey61vaKwu6nzRLE_8uPzHYTOCUX-DJHk
+//     "token_type": "bearer",
+//     "role": "admin"
+// }

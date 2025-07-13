@@ -20,6 +20,7 @@ import {
 	Title,
 	Tooltip,
 } from "chart.js";
+import { differenceInSeconds, format, set } from "date-fns";
 import { saveDeviceReadings } from "../../services/readings";
 
 // Register required components
@@ -45,7 +46,18 @@ const Analysis = () => {
 
 	const [logMessage, setLogMessage] = React.useState<string>("");
 	const [saveReadings, setSaveReadings] = React.useState<boolean>(false);
-	const [ecgChart, setECGChart] = React.useState<Chart<"line", number[], any> | null>(null)
+	const [changedSaveStaus, setChangedSaveStatus] =
+		React.useState<boolean>(false);
+
+	const initialTimestamp = saveReadings
+		? differenceInSeconds(new Date(), new Date(deviceMetadata.timestamp))
+		: 0;
+	const [session, setSession] = React.useState(initialTimestamp);
+	const [ecgChart, setECGChart] = React.useState<Chart<
+		"line",
+		number[],
+		any
+	> | null>(null);
 
 	const canvasWidth = isMobile
 		? 320
@@ -68,6 +80,7 @@ const Analysis = () => {
 	const handleSaveReadings = async (enable: boolean) => {
 		const token = localStorage.getItem("cardiac_ai_access_token") || "";
 		const deviceId = localStorage.getItem("cardiac_ai_device_id") || "";
+
 		try {
 			await saveDeviceReadings(deviceId, token, enable);
 		} catch (error) {
@@ -75,9 +88,51 @@ const Analysis = () => {
 		}
 	};
 
+	const formatElapsedTime = (totalSeconds: number): string => {
+		const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+		const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(
+			2,
+			"0"
+		);
+		const seconds = String(totalSeconds % 60).padStart(2, "0");
+		return `${hours}:${minutes}:${seconds}`;
+	};
+
+	const downloadCurrentReadings = async () => {
+		if (canvasRef.current) {
+			const dataURL = canvasRef.current.toDataURL("image/png");
+			const timestamp = format(new Date(), "dd-MM-yyyy:HH:mm:ss");
+			const link = document.createElement("a");
+			link.href = dataURL;
+			link.download = `CardiacAI_Readings_${timestamp}.png`;
+			link.click();
+		}
+	};
 	React.useEffect(() => {
-		handleSaveReadings(saveReadings);
-	}, [saveReadings]);
+		(async() => {
+			if (!changedSaveStaus) return;
+
+			await handleSaveReadings(saveReadings);
+			setChangedSaveStatus(false);
+		})();
+	}, [saveReadings, changedSaveStaus]);
+
+	React.useEffect(() => {
+		const save = deviceMetadata?.save_status;
+		setSaveReadings(save);
+	}, [deviceMetadata]);
+
+	React.useEffect(() => {
+		if (!saveReadings) return;
+
+		const timestamp = deviceMetadata.timestamp;
+
+		const interval = setInterval(() => {
+			setSession(differenceInSeconds(new Date(), new Date(timestamp)));
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [deviceMetadata, saveReadings]);
 
 	React.useEffect(() => {
 		if (!canvasRef.current) return;
@@ -118,7 +173,7 @@ const Analysis = () => {
 				},
 			},
 		});
-		setECGChart(chart)
+		setECGChart(chart);
 
 		chartRef.current = chart;
 		return () => {
@@ -129,43 +184,6 @@ const Analysis = () => {
 		};
 	}, []);
 
-	// let ctx: CanvasRenderingContext2D | null = null;
-	// if (canvasRef.current) {
-	// 	ctx = canvasRef.current.getContext("2d");
-	// }
-
-	// const ecgChart = ctx
-	// 	? new Chart(ctx, {
-	// 			type: "line",
-	// 			data: {
-	// 				labels: Array(MAX_POINTS).fill(""),
-	// 				datasets: [
-	// 					{
-	// 						label: "ECG Signal",
-	// 						borderColor: "red",
-	// 						backgroundColor: "rgba(255,0,0,0.1)",
-	// 						data: [],
-	// 						pointRadius: 0,
-	// 						borderWidth: 2,
-	// 						tension: 0.3,
-	// 					},
-	// 				],
-	// 			},
-	// 			options: {
-	// 				animation: false,
-	// 				responsive: true,
-	// 				scales: {
-	// 					x: { display: false },
-	// 					y: {
-	// 						min: -1,
-	// 						max: 1,
-	// 						title: { display: true, text: "Amplitude" },
-	// 					},
-	// 				},
-	// 			},
-	// 	  })
-	// 	: null;
-
 	socket.onopen = () => {
 		setLogMessage("Connected to backend\n");
 	};
@@ -175,16 +193,8 @@ const Analysis = () => {
 		const ecgPoint = parseFloat(rawValue);
 
 		if (!isNaN(ecgPoint)) {
-			// if (chartRef.current) {
-			// 	const dataSet = chartRef.current.data.datasets[0].data as number[];
-			// 	dataSet.push(ecgPoint);
-			// 	if (dataSet.length > MAX_POINTS) {
-			// 		dataSet.shift();
-			// 	}
-			// 	chartRef.current.update("none");
-			// }
 			console.log("Received ECG point:", ecgPoint);
-			const dataSet = ecgChart?.data.datasets[0].data as number[] || [];
+			const dataSet = (ecgChart?.data.datasets[0].data as number[]) || [];
 			dataSet.push(ecgPoint);
 			if (dataSet.length > MAX_POINTS) {
 				dataSet.shift();
@@ -199,7 +209,6 @@ const Analysis = () => {
 		setLogMessage("Connection closed");
 	};
 
-	console.log("userRole: ", userRole);
 	return (
 		<Box
 			sx={{
@@ -238,7 +247,10 @@ const Analysis = () => {
 								<Switch
 									checked={saveReadings}
 									sx={{ zIndex: 1 }}
-									onClick={() => setSaveReadings((prev) => !prev)}
+									onClick={() => {
+										setSaveReadings((prev) => !prev);
+										setChangedSaveStatus(true);
+									}}
 								/>
 							}
 							label="Save Data"
@@ -251,7 +263,7 @@ const Analysis = () => {
 						Device ID: <b>{deviceId}</b>
 					</Typography>
 					<Typography>
-						Session: <b>01:23</b>
+						Session: <b>{formatElapsedTime(session)}</b>
 					</Typography>
 					<Typography>1000 data points: 39 KB</Typography>
 				</Box>
@@ -308,6 +320,7 @@ const Analysis = () => {
 									color: "#fff",
 								},
 							}}
+							onClick={downloadCurrentReadings}
 						>
 							Download Current
 						</Button>
