@@ -166,8 +166,8 @@ const Analysis = () => {
 				scales: {
 					x: { display: false },
 					y: {
-						min: -1,
-						max: 1,
+						min: 0,
+						max: 4095,
 						title: { display: true, text: "Amplitude" },
 					},
 				},
