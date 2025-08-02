@@ -21,11 +21,7 @@ session_docs = {}  # device_id -> inserted document _id
 store_reading_flags = {}      # device_id -> bool
 current_sessions = {}         # device_id -> session_id
 reading_buffers = {}          # device_id -> List[float]
-<<<<<<< HEAD
 BUFFER_SIZE = 200             # for 125Hz input, this is 2 seconds of data
-=======
-BUFFER_SIZE = 5
->>>>>>> testing
 
 async def toggle_reading_store_service(device_id: str, enable: bool):
     """
