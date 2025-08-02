@@ -1,7 +1,7 @@
 #include "WirelessCommunication.h"
 
 WirelessCommunication::WirelessCommunication() {
-    Serial.println("[WirelessCommunication] Initialized");
+    // Serial.println("[WirelessCommunication] Initialized");
 }
 
 void WirelessCommunication::begin() {
@@ -21,14 +21,14 @@ void WirelessCommunication::begin() {
         mode = getMode();
     }
 
-    Serial.println("[WirelessCommunication] Begin completed");
+    // Serial.println("[WirelessCommunication] Begin completed");
 }
 
 void WirelessCommunication::activateWiFiMode() {
 
     // Check if credentials exist before attempting to connect
     if (ssid.isEmpty() || password.isEmpty()) {
-        Serial.println("No saved WiFi credentials found!");
+        // Serial.println("No saved WiFi credentials found!");
         return;
     }
 
@@ -40,25 +40,25 @@ void WirelessCommunication::activateWiFiMode() {
     // Attempt to connect to the saved WiFi network
     WiFi.begin(ssid.c_str(), password.c_str());
     // WiFi.begin("Electrify", "Victory111");
-    Serial.print("Connecting to WiFi/nSSID:");
-    Serial.print(ssid);
+    // Serial.print("Connecting to WiFi/nSSID:");
+    // Serial.print(ssid);
 
     // Connection retry loop
     int retries = 0;
     while (WiFi.status() != WL_CONNECTED && retries < 40) { // Max 40 retries (4 seconds)
         delay(100); // Wait for 100ms between retries
-        Serial.print(".");
+        // Serial.print(".");
         retries++;
     }
     setMode("wifi"); // Update the stored mode to "wifi"
     mode = "wifi"; // Update the in-memory mode variable
     // Check final connection status
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi connected");
-        Serial.print("IP Address: ");
-        Serial.println(WiFi.localIP());
+        // Serial.println("\nWiFi connected");
+        // Serial.print("IP Address: ");
+        // Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\nFailed to connect to WiFi");
+        // Serial.println("\nFailed to connect to WiFi");
     }
 }
 
@@ -74,31 +74,31 @@ bool WirelessCommunication::connectWiFi() {
 
     // Ensure credentials exist before attempting connection
     if (ssid.isEmpty() || password.isEmpty()) {
-        Serial.println("No saved WiFi credentials found!");
+        // Serial.println("No saved WiFi credentials found!");
         return false;
     }
 
     // Attempt to connect to the saved WiFi network
     WiFi.begin(ssid.c_str(), password.c_str());
-    Serial.print("Connecting to WiFi");
+    // Serial.print("Connecting to WiFi");
 
     // Connection retry loop (longer timeout than activateWiFiMode for re-connection attempts)
     int retries = 0;
     while (WiFi.status() != WL_CONNECTED && retries < 50) { // Max 50 retries (5 seconds)
         delay(100);
-        Serial.print(".");
+        // Serial.print(".");
         retries++;
     }
     setMode("wifi");
 
     // Check final connection status and update mode if successful
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.print("\nWiFi connected: ");
-        Serial.print("IP Address: ");
-        Serial.println(WiFi.localIP());
+        // Serial.print("\nWiFi connected: ");
+        // Serial.print("IP Address: ");
+        // Serial.println(WiFi.localIP());
         return true;
     } else {
-        Serial.println("\nFailed to connect to WiFi");
+        // Serial.println("\nFailed to connect to WiFi");
         return false;
     }
 }
@@ -121,11 +121,11 @@ void WirelessCommunication::activateHotspotMode(const char *ssid_ap, const char 
 
     // Report hotspot activation status
     if (result) {
-        Serial.println("Hotspot activated");
-        Serial.print("Hotspot IP: ");
-        Serial.println(WiFi.softAPIP());
+        // Serial.println("Hotspot activated");
+        // Serial.print("Hotspot IP: ");
+        // Serial.println(WiFi.softAPIP());
     } else {
-        Serial.println("Failed to start hotspot");
+        // Serial.println("Failed to start hotspot");
     }
 }
 
@@ -134,7 +134,7 @@ void WirelessCommunication::turnOffWireless() {
     delay(100);
     setMode("off");
     mode = "off"; // Update the in-memory mode variable
-    Serial.println("Wireless turned off");
+    // Serial.println("Wireless turned off");
 }
 
 void WirelessCommunication::saveWiFiCredentials(const char *_sssid, const char *_passsword) {
@@ -147,7 +147,7 @@ void WirelessCommunication::saveWiFiCredentials(const char *_sssid, const char *
     ssid = String(_sssid);
     password = String(_passsword);
 
-    Serial.println("WiFi credentials saved");
+    // Serial.println("WiFi credentials saved");
 }
 
 String WirelessCommunication::getSavedSSID() {
@@ -155,8 +155,8 @@ String WirelessCommunication::getSavedSSID() {
     String saved_ssid = prefs.getString("ssid", "");
     prefs.end();
 
-    Serial.print("SSID: ");
-    Serial.println(saved_ssid);
+    // Serial.print("SSID: ");
+    // Serial.println(saved_ssid);
     return saved_ssid;
 }
 
@@ -165,8 +165,8 @@ String WirelessCommunication::getSavedPassword() {
     String saved_password = prefs.getString("password", "");
     prefs.end();
 
-    Serial.print("PASSWORD: ");
-    Serial.println(saved_password);
+    // Serial.print("PASSWORD: ");
+    // Serial.println(saved_password);
     return saved_password;
 }
 
@@ -188,5 +188,5 @@ void WirelessCommunication::setMode(const char *mode) {
 }
 
 IPAddress WirelessCommunication::getIP() {
-    return(WiFi.localIP());
+    return(WiFi.softAPIP());
 }

@@ -17,11 +17,11 @@ ECGWebSocketClient::ECGWebSocketClient() {
 
 bool ECGWebSocketClient::connect(const char *ip, uint16_t port, const char *path) {
     if (_webSocket.available()) { // Check if already connected
-        Serial.println("[WS] Already connected.");
+        // Serial.println("[WS] Already connected.");
         return true;
     }
 
-    Serial.printf("[WS] Attempting to connect to ws://%s:%u%s\n", ip, port, path);
+    // Serial.printf("[WS] Attempting to connect to ws://%s:%u%s\n", ip, port, path);
     // The connect method directly tries to establish the connection.
     // It returns true if the connection process was started, false if it failed immediately.
     // The actual connection status will be confirmed by onWsEvent.
@@ -36,7 +36,7 @@ bool ECGWebSocketClient::sendECGValue(int ecgValue) {
     } else {
 
         /* We should probably try reconnecting here */
-        Serial.println("[WS] Not connected, cannot send ECG value.");
+        // Serial.println("[WS] Not connected, cannot send ECG value.");
         return false;
     }
 }
@@ -48,7 +48,7 @@ bool ECGWebSocketClient::isConnected() {
 void ECGWebSocketClient::disconnect() {
     if (_webSocket.available()) {
         _webSocket.close();
-        Serial.println("[WS] Disconnected explicitly.");
+        // Serial.println("[WS] Disconnected explicitly.");
     }
 }
 
@@ -62,25 +62,25 @@ void ECGWebSocketClient::loop() {
 // Private methods for handling WebSocket events
 void ECGWebSocketClient::onWsMessage(WebsocketsMessage message) {
     // Handle incoming text messages from the server.
-    Serial.print("[WS] Got Message: ");
-    Serial.println(message.data());
+    // Serial.print("[WS] Got Message: ");
+    // Serial.println(message.data());
 }
 
 void ECGWebSocketClient::onWsEvent(WebsocketsEvent event, String data) {
     // Handle various WebSocket lifecycle events.
     switch (event) {
         case WebsocketsEvent::ConnectionOpened:
-            Serial.println("[WS] Connnection Opened");
+            // Serial.println("[WS] Connnection Opened");
             // No need to manually set _connected flag, as _webSocket.available() handles it.
             break;
         case WebsocketsEvent::ConnectionClosed:
-            Serial.println("[WS] Connnection Closed");
+            // Serial.println("[WS] Connnection Closed");
             break;
         case WebsocketsEvent::GotPing:
-            // Serial.println("[WS]  Ping!");
+            // // Serial.println("[WS]  Ping!");
             break;
         case WebsocketsEvent::GotPong:
-            // Serial.println("[WS] Got a Pong!");
+            // // Serial.println("[WS] Got a Pong!");
             break;
         default:
             break;

@@ -278,7 +278,7 @@ void HotspotWebServer::begin()
 
             if (error) {
                 // If JSON parsing fails, send a 400 Bad Request response.
-                Serial.printf("[HotspotWebServer] JSON parsing failed: %s\n", error.c_str());
+                // Serial.printf("[HotspotWebServer] JSON parsing failed: %s\n", error.c_str());
                 request->send(400, "application/json", "{\"error\":\"Invalid JSON format\"}");
                 return;
             }
@@ -289,12 +289,12 @@ void HotspotWebServer::begin()
 
             if (!ssid || !password) {
                 // If SSID or password are missing, send a 400 Bad Request response.
-                Serial.println("[HotspotWebServer] Missing SSID or password in JSON payload.");
+                // Serial.println("[HotspotWebServer] Missing SSID or password in JSON payload.");
                 request->send(400, "application/json", "{\"error\":\"Missing SSID or password\"}");
                 return;
             }
 
-            Serial.printf("[HotspotWebServer] Received new credentials: SSID='%s'\n", ssid);
+            // Serial.printf("[HotspotWebServer] Received new credentials: SSID='%s'\n", ssid);
 
             // Save the new WiFi credentials using the WirelessCommunication instance.
             _wirelessComm.saveWiFiCredentials(ssid, password);
@@ -307,25 +307,25 @@ void HotspotWebServer::begin()
             request->send(200, "application/json", "{\"message\":\"WiFi credentials saved! Attempting to connect to WiFi in a moment...\"}"); });
 
     _server.begin(); // Start the server, making it listen for incoming connections.
-    Serial.println("[HotspotWebServer] Web server started on Hotspot mode (port 80).");
+    // Serial.println("[HotspotWebServer] Web server started on Hotspot mode (port 80).");
 }
 
 // Stops the web server.
 void HotspotWebServer::end()
 {
     _server.end(); // Stops the server instance.
-    Serial.println("[HotspotWebServer] Web server stopped.");
+    // Serial.println("[HotspotWebServer] Web server stopped.");
 }
 
 // Helper function to perform a WiFi scan and return results as a JSON array.
 String HotspotWebServer::getScannedNetworksJson()
 {
-    Serial.println("[HotspotWebServer] Starting WiFi scan...");
+    // Serial.println("[HotspotWebServer] Starting WiFi scan...");
     // Scan for WiFi networks. 'true' for hidden networks, 'false' for blocking scan.
     // For a web server, a blocking scan is generally not ideal as it can freeze the server.
     // However, for simplicity here, we use blocking. Consider asynchronous scanning for production.
     int n = WiFi.scanNetworks();
-    Serial.printf("[HotspotWebServer] Scan done. Found %d networks.\n", n);
+    // Serial.printf("[HotspotWebServer] Scan done. Found %d networks.\n", n);
 
     JsonDocument doc; // Adjust size based on expected number of networks
     JsonArray networksArray = doc.to<JsonArray>();
@@ -340,7 +340,7 @@ String HotspotWebServer::getScannedNetworksJson()
     }
 
     String jsonOutput;
-    serializeJson(doc, jsonOutput);
+    // SerializeJson(doc, jsonOutput);
     WiFi.scanDelete(); // Clear scan results to free memory
     return jsonOutput;
 }

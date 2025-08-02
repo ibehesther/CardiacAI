@@ -19,7 +19,7 @@ session_docs = {}  # device_id -> inserted document _id
 store_reading_flags = {}      # device_id -> bool
 current_sessions = {}         # device_id -> session_id
 reading_buffers = {}          # device_id -> List[float]
-BUFFER_SIZE = 100
+BUFFER_SIZE = 200             # for 125Hz input, this is 2 seconds of data
 
 async def toggle_reading_store_service(device_id: str, enable: bool):
     """
@@ -107,14 +107,12 @@ async def handle_device_websocket_service(websocket: WebSocket):
                     buffer_copy = reading_buffers[device_id][:BUFFER_SIZE]
 
                     if device_id not in session_docs:
-                        print("Storing first")
                         inserted_id = await ReadingRepository.store_reading_with_array({
                             "device_id": device_id,
                             "session_id": session_id
                         }, buffer_copy)
                         session_docs[device_id] = inserted_id
                     else:
-                        # print("Storing subsequent")
                         await ReadingRepository.append_to_array(inserted_id, buffer_copy)
 
                     reading_buffers[device_id].clear()
@@ -155,11 +153,11 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
         await websocket.close(code=1008) # Policy Violation
         return
 
-    # Check if the device is currently connected via device_ws
-    if device_id not in device_connections:
-        print(f"Frontend WebSocket connection denied: Device {device_id} not active.")
-        await websocket.close(code=1011) # Internal Error (or a custom close code if you define one for 'device not active')
-        return
+    # # Check if the device is currently connected via device_ws
+    # if device_id not in device_connections:
+    #     print(f"Frontend WebSocket connection denied: Device {device_id} not active.")
+    #     await websocket.close(code=1011) # Internal Error (or a custom close code if you define one for 'device not active')
+    #     return
 
     if device_id not in frontend_connections:
         frontend_connections[device_id] = []
@@ -169,7 +167,7 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
     try:
         while True:
             message = await websocket.receive_text()
-            print(f"Received message from frontend for device {device_id}: {message}")
+            # print(f"Received message from frontend for device {device_id}: {message}")
     except WebSocketDisconnect:
         print(f"Frontend disconnected from device {device_id}.")
         if device_id in frontend_connections and websocket in frontend_connections[device_id]:
