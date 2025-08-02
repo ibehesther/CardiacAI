@@ -29,27 +29,27 @@ void PeripheralHandler::begin() {
     pinMode(_buttonPin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(_buttonPin), onButtonInterrupt, FALLING);
 
-    Serial.println("[PeripheralHandler] Initialized LED and Button.");
+    // Serial.println("[PeripheralHandler] Initialized LED and Button.");
 }
 
 void PeripheralHandler::setBlue(int bState) {
     digitalWrite(_bluePin, bState);
-    // Serial.println("[LED] Set to Blue (WiFi Connected, WS Connected)");
+    // // Serial.println("[LED] Set to Blue (WiFi Connected, WS Connected)");
 }
 
 void PeripheralHandler::setGreen(int gState) {
     digitalWrite(_greenPin, gState);
-    // Serial.println("[LED] Set to Green (WiFi Connected, WS Disconnected)");
+    // // Serial.println("[LED] Set to Green (WiFi Connected, WS Disconnected)");
 }
 
 void PeripheralHandler::setRed(int rState) {
     digitalWrite(_redPin, rState);
-    // Serial.println("[LED] Set to Red (Hotspot Mode)");
+    // // Serial.println("[LED] Set to Red (Hotspot Mode)");
 }
 
 void PeripheralHandler::turnOff() {
     _setColor(LOW, LOW, LOW);
-    // Serial.println("[LED] Turned Off");
+    // // Serial.println("[LED] Turned Off");
 }
 
 void PeripheralHandler::toggleGreenSixTimes(unsigned long delayTime = 300) {
@@ -83,12 +83,12 @@ unsigned int PeripheralHandler::getAndResetClickCount() {
             _button.nPresses = 0;
             interrupts();
 
-            Serial.printf("[PeripheralHandler] Detected %u clicks.\n", clicks);
+            // Serial.printf("[PeripheralHandler] Detected %u clicks.\n", clicks);
             return clicks;
         }
         else {
             // If we are still within the timeout, we return the current count without resetting
-            Serial.printf("[PeripheralHandler] Clicks in progress: %u\n", _button.nPresses);
+            // Serial.printf("[PeripheralHandler] Clicks in progress: %u\n", _button.nPresses);
             delay(MULTI_CLICK_TIMEOUT_MS);
             clicks = _button.nPresses; // Capture the current count
             _button.nPresses = 0;
@@ -105,7 +105,7 @@ void IRAM_ATTR onButtonInterrupt() {
         globalPeripheralHandler->_handleButtonPress();
     }
     else {
-        Serial.println("[PeripheralHandler] Error: Global instance pointer is null in ISR.");
+        // Serial.println("[PeripheralHandler] Error: Global instance pointer is null in ISR.");
     }
 }
 
@@ -115,6 +115,6 @@ void PeripheralHandler::_handleButtonPress() {
     if (currentTime - _button.lastPressTime > CLICK_DEBOUNCE_MS) {
         _button.lastPressTime = currentTime;
         _button.nPresses = _button.nPresses + 1;
-        Serial.printf("[PeripheralHandler] ISR: Press detected, count = %u\n", _button.nPresses);
+        // Serial.printf("[PeripheralHandler] ISR: Press detected, count = %u\n", _button.nPresses);
     }
 }
