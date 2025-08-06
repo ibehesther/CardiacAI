@@ -47,7 +47,7 @@ sudo tee /etc/nginx/sites-available/cardiac >/dev/null <<'EOF'
 
 server {
     listen 80;
-    server_name api.cardiacai.tech; # Replace with real domain
+    server_name 172.187.168.3; # Replace with real domain
 
     location / {
         proxy_pass http://127.0.0.1:8000; # Forward requests to FastAPI
