@@ -19,7 +19,7 @@ StandardError=append:/var/log/cardiac.err.log
 Environment="PATH=$(poetry env info --path)/bin"
 Environment="PYTHONPATH=${HOME}/CardiacAI/backend/app/src"
 
-ExecStart=$(poetry run which gunicorn) -w 4 -k uvicorn.workers.UvicornWorker \
+ExecStart=$(poetry run which gunicorn) -w 1 -k uvicorn.workers.UvicornWorker \
   app.main:app --bind 0.0.0.0:8000 --log-level debug
 
 Restart=always
