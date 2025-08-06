@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from fastapi import WebSocket, WebSocketDisconnect
 from app.src.models.reading import ECGReading
 
-MAX_NUM_OF_FRONTEND_CONNECTIONS = 12
+MAX_NUM_OF_FRONTEND_CONNECTIONS = 3
 
 # Track active WebSocket connections
 device_connections: Dict[str, WebSocket] = {}          # device_id: device websocket
@@ -21,7 +21,7 @@ session_docs = {}  # device_id -> inserted document _id
 store_reading_flags = {}      # device_id -> bool
 current_sessions = {}         # device_id -> session_id
 reading_buffers = {}          # device_id -> List[float]
-BUFFER_SIZE = 200             # for 125Hz input, this is 2 seconds of data
+BUFFER_SIZE = 250             # for 125Hz input, this is 2 seconds of data
 
 async def toggle_reading_store_service(device_id: str, enable: bool):
     """
@@ -93,13 +93,13 @@ async def handle_device_websocket_service(websocket: WebSocket):
 
     device_connections[device_id] = websocket
 
-    print(f"Device {device_id} connected.")
+    # print(f"Device {device_id} connected.")
 
     try:
         inserted_id = ""
         while True:
             data = await websocket.receive_text()
-            data_point = json.loads(data)
+            data_point = json.loads(data) # type: float
 
             # Forward to frontend
             if device_id in frontend_connections:
@@ -108,31 +108,31 @@ async def handle_device_websocket_service(websocket: WebSocket):
 
             # Store to DB if toggled on
             if store_reading_flags.get(device_id):
-                if not isinstance(data_point, (int, float)):
-                    data_point = data_point.get("value")
-                if data_point is None:
-                    continue
+                # # if not isinstance(data_point, (int, float)): # it slows down the process
+                # data_point = data_point.get("value")
+                # # if data_point is None:
+                # #     continue
 
                 reading_buffers[device_id].append(float(data_point))
 
                 # Save when buffer reaches threshold
                 if len(reading_buffers[device_id]) >= BUFFER_SIZE:
                     session_id = current_sessions[device_id]
-                    buffer_copy = reading_buffers[device_id][:BUFFER_SIZE]
+                    reading_buffers[device_id][:BUFFER_SIZE]
 
                     if device_id not in session_docs:
                         inserted_id = await ReadingRepository.store_reading_with_array({
                             "device_id": device_id,
                             "session_id": session_id
-                        }, buffer_copy)
+                        }, reading_buffers[device_id][:BUFFER_SIZE])
                         session_docs[device_id] = inserted_id
                     else:
-                        await ReadingRepository.append_to_array(inserted_id, buffer_copy)
+                        await ReadingRepository.append_to_array(inserted_id, reading_buffers[device_id][:BUFFER_SIZE])
 
                     reading_buffers[device_id].clear()
 
     except WebSocketDisconnect:
-        print(f"Device {device_id} disconnected.")
+        # print(f"Device {device_id} disconnected.")
         device_connections.pop(device_id, None)
 
         # Handle pending buffer if session was active
@@ -163,37 +163,36 @@ async def handle_frontend_websocket_service(websocket: WebSocket):
     await websocket.accept()
     device_id = websocket.query_params.get("device_id")
     if not device_id:
-        print("Frontend WebSocket connection denied: Missing device_id.")
+        # print("Frontend WebSocket connection denied: Missing device_id.")
         await websocket.close(code=1008) # Policy Violation
         return
 
-    # # Check if the device is currently connected via device_ws
-    # if device_id not in device_connections:
-    #     print(f"Frontend WebSocket connection denied: Device {device_id} not active.")
-    #     await websocket.close(code=1011) # Internal Error (or a custom close code if you define one for 'device not active')
-    #     return
-
     if device_id not in frontend_connections:
         frontend_connections[device_id] = []
-    frontend_connections[device_id].append(websocket)
 
-    print(frontend_connections)
-    if len(frontend_connections[device_id]) > MAX_NUM_OF_FRONTEND_CONNECTIONS:
-        # remove the oldest 80% of connections
-        num_to_remove = int(len(frontend_connections[device_id]) * 0.8)
-        del frontend_connections[device_id][0:num_to_remove]
-        print(f"Remaining frontend connections for device {device_id}: {len(frontend_connections.get(device_id, []))}")
+    if len(frontend_connections[device_id]) >= MAX_NUM_OF_FRONTEND_CONNECTIONS:
+        # print(f"Frontend connection limit reached for device {device_id}. Closing all previous connections.")
+        for conn in frontend_connections[device_id]:
+            # delete it from the list
+            frontend_connections[device_id].remove(conn)
+            await conn.close(code=1008)
+        frontend_connections[device_id] = []
+    frontend_connections[device_id].append(websocket)
 
     try:
         while True:
             message = await websocket.receive_text()
             # print(f"Received message from frontend for device {device_id}: {message}")
     except WebSocketDisconnect:
-        print(f"Frontend disconnected from device {device_id}.")
-        # if device_id in frontend_connections and websocket in frontend_connections[device_id]:
-        #     frontend_connections[device_id].remove(websocket)
-        #     if not frontend_connections[device_id]:
-        #         frontend_connections.pop(device_id)
+        # print(f"Frontend disconnected from device {device_id}.")
+        if device_id in frontend_connections and websocket in frontend_connections[device_id]:
+            frontend_connections[device_id].remove(websocket)
+            if not frontend_connections[device_id]:
+                frontend_connections.pop(device_id)
     except Exception as e:
-        print(f"Error in frontend WebSocket for device {device_id}: {e}")
+        # print(f"Error in frontend WebSocket for device {device_id}: {e}")
+        if device_id in frontend_connections and websocket in frontend_connections[device_id]:
+            frontend_connections[device_id].remove(websocket)
+            if not frontend_connections[device_id]:
+                frontend_connections.pop(device_id)
         await websocket.close(code=1011)

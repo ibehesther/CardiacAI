@@ -114,11 +114,9 @@ async def get_metadata_for_device(device_id: str, token: str = Depends(oauth2_sc
     """
     try:
         metadata = await get_device_metadata_service(device_id)
-        print(f"metadata: {metadata}")
         if not metadata:
             # Optionally return 404 if no metadata found, or an empty list
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No metadata found for DeviceInDB ID: {device_id}")
         return metadata
     except Exception as e:
-        print(f"Error fetching metadata for DeviceInDB {device_id}: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device has never saved any data to db.")
