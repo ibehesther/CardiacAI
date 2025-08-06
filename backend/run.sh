@@ -41,16 +41,40 @@ sudo apt install -y nginx
 echo "Nginx installed successfully."
 
 # Create Nginx config file
-echo "Creating Nginx config file..."
+echo "Creating Nginx config file with HTTPS..."
 sudo tee /etc/nginx/sites-available/cardiac >/dev/null <<'EOF'
 # /etc/nginx/sites-available/cardiac
 
+# Redirect all HTTP to HTTPS
 server {
     listen 80;
-    server_name api.cardiacai.tech; # Replace with real domain
+    server_name api.cardiacai.tech;
+    return 301 https://$host$request_uri;
+}
+
+# Main HTTPS server
+server {
+    listen 443 ssl;
+    server_name api.cardiacai.tech;
+
+    # SSL certificates from Let's Encrypt
+    ssl_certificate /etc/letsencrypt/live/api.cardiacai.tech/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.cardiacai.tech/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/api.cardiacai.tech/chain.pem;
+
+    # SSL settings for better security
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+
+    # Optional: HSTS (forces HTTPS in browsers)
+    add_header Strict-Transport-Security "max-age=31536000" always;
 
     location / {
-        proxy_pass http://127.0.0.1:8000; # Forward requests to FastAPI
+        proxy_pass http://127.0.0.1:8000;
 
         # Standard headers for HTTP proxying
         proxy_set_header Host $host;
