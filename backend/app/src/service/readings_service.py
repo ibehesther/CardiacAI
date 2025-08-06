@@ -108,10 +108,10 @@ async def handle_device_websocket_service(websocket: WebSocket):
 
             # Store to DB if toggled on
             if store_reading_flags.get(device_id):
-                if not isinstance(data_point, (int, float)): # it slows down the process
-                data_point = data_point.get("value")
-                if data_point is None:
-                    continue
+                # if not isinstance(data_point, (int, float)): # it slows down the process
+                # data_point = data_point.get("value")
+                # if data_point is None:
+                #     continue
 
                 reading_buffers[device_id].append(float(data_point))
 
