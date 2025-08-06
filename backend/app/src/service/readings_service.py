@@ -99,7 +99,7 @@ async def handle_device_websocket_service(websocket: WebSocket):
         inserted_id = ""
         while True:
             data = await websocket.receive_text()
-            data_point = json.loads(data) # type: float
+            data_point = json.loads(data)
 
             # Forward to frontend
             if device_id in frontend_connections:
