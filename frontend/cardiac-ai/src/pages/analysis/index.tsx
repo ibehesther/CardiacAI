@@ -75,7 +75,7 @@ const Analysis = () => {
 	);
 	const isAdmin = userRole === "admin";
 
-	const MAX_POINTS = 40;
+	const MAX_POINTS = 250;
 
 	const handleSaveReadings = async (enable: boolean) => {
 		const token = localStorage.getItem("cardiac_ai_access_token") || "";
