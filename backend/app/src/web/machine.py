@@ -87,6 +87,8 @@ async def get_metadata_for_device(device_id: str, token: str = Depends(oauth2_sc
 
     The metadata includes pointers to all ECG readings saved for the device.
     In these json readings, you can extract the `session_id` and `timestamp` to download the ECG data.
+
+    The last item on the list has a save_status field that indicates whether the device is currently storing readings or not.
     Args:
         device_id (str): The unique identifier for the device.
     Returns:
@@ -112,11 +114,9 @@ async def get_metadata_for_device(device_id: str, token: str = Depends(oauth2_sc
     """
     try:
         metadata = await get_device_metadata_service(device_id)
-        print(f"metadata: {metadata}")
         if not metadata:
             # Optionally return 404 if no metadata found, or an empty list
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No metadata found for DeviceInDB ID: {device_id}")
         return metadata
     except Exception as e:
-        print(f"Error fetching metadata for DeviceInDB {device_id}: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device has never saved any data to db.")

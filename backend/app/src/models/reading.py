@@ -24,6 +24,7 @@ class ECGReading(BaseModel):
     session_id: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     ecg_array_id: Annotated[ObjectId, ObjectIdPydanticAnnotation]
+    save_status: bool = Field(default=False, description="Indicates if the reading is saved or not")
 
     class Config:
         arbitrary_types_allowed = True

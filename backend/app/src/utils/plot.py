@@ -6,11 +6,11 @@ Utility functions for plotting ECG data and returning images.
 
 All that is needed is just amplitude data and a session ID."""
 def plot_ecg_and_return_image(session: dict):
-    # We should look towards plotting only 200 points
+    # We should look towards plotting only 1000 points
     ecg_data = session["data"]
     timestamp = session.get("timestamp", "")
     session_id = str(session.get("_id", ""))
-    MAX_POINTS = 200
+    MAX_POINTS = 1000
     OFFSET = 50
 
     # X-axis: evenly spaced sample index (or timestamps if available)
@@ -23,14 +23,11 @@ def plot_ecg_and_return_image(session: dict):
         y = ecg_data[:MAX_POINTS]
     else:
         y = ecg_data[OFFSET:MAX_POINTS+OFFSET]
-    
-    print(f"len x {len(x)}")
-    print(f"len y {len(y)}")
 
     plt.figure(figsize=(12, 4))
     plt.plot(x, y, color="red")
-    plt.title(f"ECG Session {session_id} ({timestamp})")
-    plt.xlabel("Sample #")
+    plt.title(f"ECG Session ({timestamp})")
+    plt.xlabel(f"{len(x)} points random samples. SCALE: 100 = 1 second")
     plt.ylabel("Amplitude")
     plt.grid(True)
 

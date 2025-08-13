@@ -23,7 +23,7 @@ async def toggle_reading_store(device_id: str, enable: bool, token: str = Depend
         `enable` (bool): True to enable storing, False to disable.
     """
     # Check if the user is an admin
-    print(f"Token: {token}")
+
     is_admin = await check_for_admin(token)
     if is_admin:
         return await toggle_reading_store_service(device_id, enable)

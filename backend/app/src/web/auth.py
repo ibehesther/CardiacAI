@@ -18,7 +18,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
     Returns:
         Token: The access token.
     """
-    print(f"Authenticating user with device_id: {form_data.username} and password: {form_data.password}")
     token = await authenticate_user(
         form_data.username, form_data.password
     )
