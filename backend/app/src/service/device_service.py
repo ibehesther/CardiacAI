@@ -24,8 +24,6 @@ class DeviceService:
         # Check if a DeviceInDB with this ID already exists
         existing_device = await DeviceRepository.get_device_by_id(device_data.device_id)
         if existing_device:
-            # You might log this or raise a custom business exception here
-            print(f"Attempted to create DeviceInDB with existing ID: {device_data.device_id}")
             return None # Indicate that creation failed due to conflict
         
         # If no conflict, proceed to create via the repository

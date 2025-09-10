@@ -169,7 +169,7 @@ class ReadingRepository:
         if not isinstance(new_values, list) or not all(isinstance(v, (int, float)) for v in new_values):
             raise ValueError("new_values must be a list of numbers")
 
-        MAX_ARRAY_LENGTH = 2000
+        MAX_ARRAY_LENGTH = 20000
 
         # 1. Fetch the document to get the current length of the 'data' array
         # This step is crucial to determine how many new values can be added.
@@ -184,7 +184,7 @@ class ReadingRepository:
         if current_length >= MAX_ARRAY_LENGTH:
             # If the array is already at or above the maximum length,
             # discard all new incoming data.
-            print(f"Array {array_id} is already at max length ({MAX_ARRAY_LENGTH}). New data discarded.")
+            # print(f"Array {array_id} is already at max length ({MAX_ARRAY_LENGTH}). New data discarded.")
             return document  # Return the existing document without modification
 
         # Calculate the remaining capacity in the array
@@ -196,7 +196,7 @@ class ReadingRepository:
         if not values_to_add:
             # If no values are left to add after capping (e.g., new_values was empty
             # or too large to fit any part), return the current document.
-            print(f"No new values to add to array {array_id} after capping.")
+            # print(f"No new values to add to array {array_id} after capping.")
             return document
 
         # 3. Append the (potentially truncated) list of new values to the array

@@ -20,18 +20,15 @@ async def authenticate_user(device_id: str, password: str) -> Token:
     """
     device = await DeviceRepository.get_device_by_id(device_id)
     if not device:
-        print(f"Device with ID {device_id} not found.")
         return None
     
     if verify_password(password, device.hashed_password):
-        print(f"Authenticated device with ID {device_id} as admin.")
         return Token(
             access_token=await create_access_token(device_id, "admin"),
             token_type="bearer",
             role="admin",
         )
     elif verify_password(password, device.hashed_public_password):
-        print(f"Authenticated device with ID {device_id} as user.")
         return Token(
             access_token=await create_access_token(device_id, "user"),
             token_type="bearer",
@@ -50,7 +47,6 @@ async def create_access_token(device_id: str, role: str) -> str:
     Returns:
     - str: The access token.
     """
-    print(f"About access token for device_id: {device_id} with role: {role}")
     payload = {
         "device_id": device_id,
         "exp": int(
@@ -58,8 +54,6 @@ async def create_access_token(device_id: str, role: str) -> str:
         ),
         "role": role,
     }
-
-    print(f"Creating access token for device_id: {device_id} with role: {role}")
     
     return jwt.encode(
         payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
