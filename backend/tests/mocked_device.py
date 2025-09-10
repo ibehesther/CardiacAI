@@ -6,6 +6,7 @@ import time
 DEVICE_ID = "cardiacai-123"  # Use any unique ID
 # DEVICE_ID = "cardiacai-122"
 
+
 async def send_data():
     # uri = f"ws://localhost:8000/api/ws/device?device_id={DEVICE_ID}"
     uri = f"wss://api.cardiacai.tech/api/ws/device?device_id={DEVICE_ID}"
