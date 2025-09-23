@@ -1,6 +1,7 @@
 import {
 	Box,
 	Button,
+	CircularProgress,
 	FormControlLabel,
 	Switch,
 	TextField,
@@ -20,8 +21,10 @@ import {
 	Title,
 	Tooltip,
 } from "chart.js";
-import { differenceInSeconds, format, set } from "date-fns";
-import { saveDeviceReadings } from "../../services/readings";
+import { differenceInSeconds, format } from "date-fns";
+import { requestAIAnalysis, saveDeviceReadings } from "../../services/readings";
+import PrevReadingModal from "./prevReadingModal";
+import { getDeviceMetadata } from "../../services/auth";
 
 // Register required components
 Chart.register(
@@ -34,6 +37,15 @@ Chart.register(
 	Tooltip
 );
 
+enum ECGClasses {
+	F = "F",
+	M = "M",
+	N = "N",
+	Q = "Q",
+	S = "S",
+	V = "V",
+}
+
 const Analysis = () => {
 	const { deviceMetadata, userRole } = useAuth();
 	const theme = useTheme();
@@ -44,10 +56,15 @@ const Analysis = () => {
 	const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 	const biggerTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
 
+	const [loading, setLoading] = React.useState<boolean>(false);
+	const [openSocket, setOpenSocket] = React.useState<boolean>(true);
+	const [openPrevModal, setOpenPrevModal] = React.useState<boolean>(false);
+	const [fetchedDeviceMetadata, setFetchedDeviceMetadata] = React.useState([]);
 	const [logMessage, setLogMessage] = React.useState<string>("");
 	const [saveReadings, setSaveReadings] = React.useState<boolean>(false);
 	const [changedSaveStaus, setChangedSaveStatus] =
 		React.useState<boolean>(false);
+	const [ecgResult, setECGResult] = React.useState<string>("");
 
 	const initialTimestamp = saveReadings
 		? differenceInSeconds(new Date(), new Date(deviceMetadata.timestamp))
@@ -60,19 +77,17 @@ const Analysis = () => {
 	> | null>(null);
 
 	const canvasWidth = isMobile
-		? 320
+		? 450
 		: isTablet
 		? 400
 		: biggerTablet
 		? 600
 		: 800;
 
-	const canvasHeight = isMobile ? 250 : biggerTablet ? 280 : 300;
+	const canvasHeight = isMobile ? 300 : biggerTablet ? 280 : 300;
 
 	const deviceId = deviceMetadata?.device_id;
-	const socket = new WebSocket(
-		`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`
-	);
+	const socketRef = useRef<WebSocket | null>(null);
 	const isAdmin = userRole === "admin";
 
 	const MAX_POINTS = 250;
@@ -88,6 +103,25 @@ const Analysis = () => {
 		}
 	};
 
+	const toggleSocketConnection = (open: boolean) => {
+		const socket = socketRef.current;
+		if (!socket) return;
+		if (open) {
+			if (
+				socket.readyState !== WebSocket.OPEN &&
+				socket.readyState !== WebSocket.CONNECTING
+			) {
+				// Reconnect by creating a new socket
+				socketRef.current = new WebSocket(
+					`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`
+				);
+			}
+		} else {
+			if (socket.readyState === WebSocket.OPEN) {
+				socket.close();
+			}
+		}
+	};
 	const formatElapsedTime = (totalSeconds: number): string => {
 		const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
 		const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(
@@ -108,8 +142,128 @@ const Analysis = () => {
 			link.click();
 		}
 	};
+
+	const interpreteECGResult = (
+		result: {
+			predicted_class: ECGClasses;
+			probabilities: Record<ECGClasses, number>;
+		},
+		threshold: number = 0.05
+	) => {
+		const classDescriptions: Record<ECGClasses, string> = {
+			F: "Fusion of ventricular and normal beat - irregular beat caused by overlap of ventricular and normal signals.",
+			M: "Fusion of paced and normal beat - mixture of pacemaker and natural heart rhythm signals.",
+			N: "Normal beat - ECG appears within normal rhythm and waveform limits.",
+			Q: "Unclassifiable beat - ECG pattern does not fit recognized categories.",
+			S: "Supraventricular premature beat - early beat originating above the ventricles.",
+			V: "Premature ventricular contraction (PVC) - extra beat originating from the ventricles.",
+		};
+
+		const recommendations: Record<ECGClasses, string> = {
+			N: "Your ECG appears normal. Maintain a healthy lifestyle and routine check-ups.",
+			F: "Irregular fusion beats detected. Consider consulting a cardiologist for further evaluation.",
+			M: "Fusion of paced and natural beats detected. If you have a pacemaker, ensure regular follow-ups.",
+			Q: "The ECG beat could not be classified. A repeat ECG or clinical review is recommended.",
+			S: "Supraventricular premature beats detected. May require monitoring or lifestyle adjustments.",
+			V: "Premature ventricular contractions detected. Further cardiac evaluation is advised.",
+		};
+
+		const { predicted_class: predictedClass, probabilities } = result;
+		const predictedClassDescription =
+			classDescriptions[predictedClass as keyof typeof classDescriptions] ||
+			"Unknown class";
+
+		console.log("Predicted Class:", predictedClassDescription);
+
+		const sortedProbs = (
+			Object.entries(probabilities) as [ECGClasses, number][]
+		).sort((a, b) => b[1] - a[1]);
+
+		const predictedProb = probabilities[predictedClass];
+
+		// Pick alternatives within threshold margin (max 2)
+		const alternatives = sortedProbs
+			.filter(
+				([cls, prob]) =>
+					cls !== predictedClass && predictedProb - prob <= threshold
+			)
+			.slice(0, 2);
+
+		// Build output text
+		let output = `Predicted Class: ${predictedClass} (${(
+			predictedProb * 100
+		).toFixed(2)}%)\n`;
+		output += `Description: ${classDescriptions[predictedClass]}\n`;
+
+		if (alternatives.length > 0) {
+			output += `\nPossible Alternatives:\n`;
+			for (const [cls, prob] of alternatives) {
+				output += `- ${cls} (${(prob * 100).toFixed(2)}%): ${
+					classDescriptions[cls]
+				}\n`;
+			}
+		}
+
+		output += `\nRecommendation: ${recommendations[predictedClass]}`;
+
+		return output;
+	};
+
+	const handleAIAnalysis = async () => {
+		setLoading(true);
+		try {
+			const response = await requestAIAnalysis(canvasRef);
+
+			console.log("AI Analysis Response:", response);
+
+			setECGResult(interpreteECGResult(response));
+		} catch (error) {
+			console.error("Error requesting AI analysis:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	React.useEffect(() => {
-		(async() => {
+		if (!deviceId) return;
+		socketRef.current = new WebSocket(
+			`wss://api.cardiacai.tech/api/ws/frontend?device_id=${deviceId}`
+		);
+
+		socketRef.current.onopen = () => {
+			setLogMessage("Connected to backend\n");
+		};
+
+		socketRef.current.onmessage = (event) => {
+			const rawValue = event.data.trim();
+			const ecgPoint = parseFloat(rawValue);
+
+			if (!isNaN(ecgPoint)) {
+				const dataSet = (ecgChart?.data.datasets[0].data as number[]) || [];
+				dataSet.push(ecgPoint);
+				if (dataSet.length > MAX_POINTS) {
+					dataSet.shift();
+				}
+				ecgChart?.update("none");
+			} else {
+				console.warn("Invalid ECG data:", rawValue);
+			}
+		};
+
+		socketRef.current.onclose = () => {
+			setLogMessage("Connection closed");
+		};
+
+		return () => {
+			if (socketRef.current) {
+				socketRef.current.close();
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [deviceId, ecgChart, socketRef.current]);
+
+	React.useEffect(() => {
+		(async () => {
 			if (!changedSaveStaus) return;
 
 			await handleSaveReadings(saveReadings);
@@ -133,6 +287,16 @@ const Analysis = () => {
 
 		return () => clearInterval(interval);
 	}, [deviceMetadata, saveReadings]);
+
+	React.useEffect(() => {
+		(async () => {
+			const token = localStorage.getItem("cardiac_ai_access_token") || "";
+			if (openPrevModal) {
+				const deviceMetadata = await getDeviceMetadata(deviceId, token);
+				setFetchedDeviceMetadata(deviceMetadata);
+			}
+		})();
+	}, [openPrevModal, deviceId]);
 
 	React.useEffect(() => {
 		if (!canvasRef.current) return;
@@ -184,40 +348,17 @@ const Analysis = () => {
 		};
 	}, []);
 
-	socket.onopen = () => {
-		setLogMessage("Connected to backend\n");
-	};
-
-	socket.onmessage = (event) => {
-		const rawValue = event.data.trim();
-		const ecgPoint = parseFloat(rawValue);
-
-		if (!isNaN(ecgPoint)) {
-			console.log("Received ECG point:", ecgPoint);
-			const dataSet = (ecgChart?.data.datasets[0].data as number[]) || [];
-			dataSet.push(ecgPoint);
-			if (dataSet.length > MAX_POINTS) {
-				dataSet.shift();
-			}
-			ecgChart?.update("none");
-		} else {
-			console.warn("Invalid ECG data:", rawValue);
-		}
-	};
-
-	socket.onclose = () => {
-		setLogMessage("Connection closed");
-	};
-
 	return (
 		<Box
 			sx={{
 				width: "100vw",
-				height: "calc(100vh - 4rem)",
+				// height: "calc(100vh - 4rem)",
+				height: "100vh",
 				display: "flex",
 				flexDirection: "column",
 				justifyContent: "center",
 				alignItems: "center",
+				background: "rgba(249, 250, 255, 1)",
 			}}
 		>
 			<Box
@@ -227,6 +368,7 @@ const Analysis = () => {
 					// height: "70%",
 					width: "calc(100% - 6rem)",
 					height: "calc(100% - 6rem)",
+					// height: '100%',
 					display: "flex",
 					flexDirection: "column",
 					padding: { xs: "3rem 1.5rem", md: "3rem" },
@@ -265,7 +407,6 @@ const Analysis = () => {
 					<Typography>
 						Session: <b>{formatElapsedTime(session)}</b>
 					</Typography>
-					{/* <Typography>1000 data points: 39 KB</Typography> */}
 				</Box>
 				<Box sx={{ width: "100%", margin: "1rem 0" }}>
 					<canvas
@@ -280,6 +421,25 @@ const Analysis = () => {
 						}}
 					/>
 					<pre id="log">{logMessage}</pre>
+				</Box>
+				<Box>
+					<Button
+						variant="contained"
+						sx={{
+							border: "1px solid rgba(47, 90, 196, 1)",
+							background: "rgba(47, 90, 196, 1)",
+							padding: "0.5rem 1rem",
+							cursor: loading ? "not-allowed" : "pointer",
+						}}
+						onClick={() => {
+							setOpenSocket((prev) => {
+								toggleSocketConnection(!prev);
+								return !prev;
+							});
+						}}
+					>
+						{openSocket ? "Pause" : "Resume"}
+					</Button>
 				</Box>
 				{isAdmin ? (
 					<Box
@@ -298,12 +458,15 @@ const Analysis = () => {
 								padding: "1rem 2rem",
 								background: "#fff",
 								borderRadius: "1rem",
+								cursor: loading ? "not-allowed" : "pointer",
+
 								":hover": {
 									border: "2px solid rgba(47, 90, 196, 1)",
 									background: "rgba(47, 90, 196, 1)",
 									color: "#fff",
 								},
 							}}
+							onClick={() => setOpenPrevModal(true)}
 						>
 							Download Previous
 						</Button>
@@ -314,6 +477,8 @@ const Analysis = () => {
 								padding: "1rem 2rem",
 								background: "#fff",
 								borderRadius: "1rem",
+								cursor: loading ? "not-allowed" : "pointer",
+
 								":hover": {
 									border: "2px solid rgba(47, 90, 196, 1)",
 									background: "rgba(47, 90, 196, 1)",
@@ -331,14 +496,18 @@ const Analysis = () => {
 								padding: "1rem 2rem",
 								background: "#fff",
 								borderRadius: "1rem",
+								cursor: loading ? "not-allowed" : "pointer",
+
 								":hover": {
 									border: "2px solid rgba(47, 90, 196, 1)",
 									background: "rgba(47, 90, 196, 1)",
 									color: "#fff",
 								},
 							}}
+							onClick={handleAIAnalysis}
 						>
-							Request AI Analysis
+							Request AI Analysis {"   "}
+							{loading ? <CircularProgress size={"1rem"} /> : ""}
 						</Button>
 					</Box>
 				) : (
@@ -357,8 +526,15 @@ const Analysis = () => {
 								borderRadius: "1rem",
 							},
 						}}
+						disabled
+						value={ecgResult}
 					/>
 				</Box>
+				<PrevReadingModal
+					open={openPrevModal}
+					onClose={() => setOpenPrevModal(false)}
+					data={fetchedDeviceMetadata}
+				/>
 			</Box>
 		</Box>
 	);
